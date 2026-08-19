@@ -1,14 +1,23 @@
 import { Frame } from "@react95/core";
+import { Qfecheck111, User } from "@react95/icons";
 import dateFormat from "dateformat";
+import React from "react";
 
 interface MessageProps {
   id: string;
   text: string;
   isUser: boolean;
   createdAt: Date;
+  icon?: React.ReactNode;
 }
 
-export default function Message({ id, text, isUser, createdAt }: MessageProps) {
+export default function Message({
+  id,
+  text,
+  isUser,
+  createdAt,
+  icon,
+}: MessageProps) {
   return (
     <Frame
       key={id}
@@ -20,9 +29,18 @@ export default function Message({ id, text, isUser, createdAt }: MessageProps) {
     >
       <div className="flex justify-between items-center mb-1.5 gap-4">
         <h4
-          className={`font-bold text-xs ${isUser ? "text-[#1b4d1b]" : "text-[#000080]"}`}
+          className={`font-bold text-xs flex items-center gap-0.5 ${
+            isUser ? "text-[#1b4d1b]" : "text-[#000080]"
+          }`}
         >
-          {isUser ? "YOU (User)" : "ASSISTANT AI"}
+          {icon ? (
+            icon
+          ) : isUser ? (
+            <User variant="16x16_4" className="-mr-0.5" />
+          ) : (
+            <Qfecheck111 variant="32x32_4" className="-mr-0.5" />
+          )}
+          <span>{isUser ? "YOU (User)" : "ASSISTANT AI"}</span>
         </h4>
         <span className="text-[11px] text-gray-600">
           {dateFormat(createdAt, "h:MM TT")}
