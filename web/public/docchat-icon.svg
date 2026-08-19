@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- Win95 DocChat Desktop Icon (48x48) -->
+
+  <!-- === DOCUMENT === -->
+  <!-- Document drop shadow -->
+  <rect x="8" y="6" width="24" height="32" fill="#808080"/>
+
+  <!-- Document body -->
+  <rect x="5" y="3" width="24" height="32" fill="#FFFFFF"/>
+
+  <!-- Win95 raised bevel on document -->
+  <!-- Top highlight -->
+  <rect x="5" y="3" width="24" height="1" fill="#DFDFDF"/>
+  <!-- Left highlight -->
+  <rect x="5" y="3" width="1" height="32" fill="#DFDFDF"/>
+  <!-- Bottom shadow -->
+  <rect x="5" y="34" width="24" height="1" fill="#404040"/>
+  <!-- Right shadow -->
+  <rect x="28" y="3" width="1" height="32" fill="#404040"/>
+  <!-- Bottom dark edge -->
+  <rect x="6" y="33" width="22" height="1" fill="#808080"/>
+  <!-- Right dark edge -->
+  <rect x="28" y="4" width="1" height="30" fill="#808080"/>
+
+  <!-- Page fold corner -->
+  <polygon points="24,3 29,3 29,8" fill="#C0C0C0"/>
+  <polygon points="24,3 29,8 24,8" fill="#DFDFDF"/>
+  <line x1="24" y1="3" x2="29" y2="8" stroke="#808080" stroke-width="0.7"/>
+
+  <!-- Document title bar (blue like Win95 active window) -->
+  <rect x="7" y="5" width="15" height="3" fill="#000080"/>
+  <rect x="8" y="6" width="1" height="1" fill="#FFFFFF"/>
+  <rect x="10" y="6" width="1" height="1" fill="#FFFFFF"/>
+  <rect x="12" y="6" width="1" height="1" fill="#FFFFFF"/>
+
+  <!-- Document text lines -->
+  <rect x="8" y="11" width="16" height="1" fill="#000080"/>
+  <rect x="8" y="14" width="18" height="1" fill="#808080"/>
+  <rect x="8" y="16" width="15" height="1" fill="#808080"/>
+  <rect x="8" y="18" width="12" height="1" fill="#808080"/>
+  <rect x="8" y="20" width="17" height="1" fill="#808080"/>
+  <rect x="8" y="22" width="14" height="1" fill="#808080"/>
+  <rect x="8" y="24" width="10" height="1" fill="#808080"/>
+  <rect x="8" y="26" width="16" height="1" fill="#808080"/>
+  <rect x="8" y="28" width="8" height="1" fill="#808080"/>
+
+  <!-- === CHAT BUBBLE === -->
+  <!-- Chat bubble shadow -->
+  <rect x="22" y="24" width="22" height="16" rx="2" fill="#000040"/>
+
+  <!-- Chat bubble body -->
+  <rect x="20" y="22" width="22" height="16" rx="2" fill="#000080"/>
+
+  <!-- Chat bubble bevel -->
+  <!-- Top highlight -->
+  <rect x="20" y="22" width="22" height="1" fill="#0000C0"/>
+  <!-- Left highlight -->
+  <rect x="20" y="22" width="1" height="16" fill="#0000C0"/>
+  <!-- Bottom shadow -->
+  <rect x="20" y="37" width="22" height="1" fill="#000040"/>
+  <!-- Right shadow -->
+  <rect x="41" y="22" width="1" height="16" fill="#000040"/>
+
+  <!-- Chat bubble tail -->
+  <polygon points="23,38 23,43 28,38" fill="#000080"/>
+  <polygon points="25,38 25,43 30,38" fill="#000040" opacity="0.3"/>
+
+  <!-- Chat bubble inner white area -->
+  <rect x="22" y="24" width="18" height="12" fill="#FFFFFF"/>
+  <!-- Inner area sunken bevel -->
+  <rect x="22" y="24" width="18" height="1" fill="#808080"/>
+  <rect x="22" y="24" width="1" height="12" fill="#808080"/>
+  <rect x="22" y="35" width="18" height="1" fill="#DFDFDF"/>
+  <rect x="39" y="24" width="1" height="12" fill="#DFDFDF"/>
+
+  <!-- Chat message line 1 (AI response) -->
+  <rect x="24" y="26" width="8" height="1" fill="#008080"/>
+  <rect x="24" y="28" width="14" height="1" fill="#000000"/>
+  <rect x="24" y="30" width="11" height="1" fill="#000000"/>
+
+  <!-- Chat input cursor (blinking) -->
+  <rect x="24" y="33" width="1" height="2" fill="#000000"/>
+
+  <!-- AI sparkle indicator -->
+  <rect x="35" y="26" width="1" height="1" fill="#FF0000"/>
+  <rect x="34" y="27" width="1" height="1" fill="#FFFF00"/>
+  <rect x="36" y="27" width="1" height="1" fill="#FFFF00"/>
+  <rect x="35" y="28" width="1" height="1" fill="#FF0000"/>
+
+  <!-- PDF badge -->
+  <rect x="2" y="30" width="12" height="7" fill="#C0C0C0"/>
+  <!-- Badge bevel -->
+  <rect x="2" y="30" width="12" height="1" fill="#DFDFDF"/>
+  <rect x="2" y="30" width="1" height="7" fill="#DFDFDF"/>
+  <rect x="2" y="36" width="12" height="1" fill="#808080"/>
+  <rect x="13" y="30" width="1" height="7" fill="#808080"/>
+  <!-- "PDF" text approximation -->
+  <!-- P -->
+  <rect x="4" y="32" width="1" height="4" fill="#FF0000"/>
+  <rect x="5" y="32" width="1" height="1" fill="#FF0000"/>
+  <rect x="5" y="34" width="1" height="1" fill="#FF0000"/>
+  <rect x="6" y="33" width="1" height="1" fill="#FF0000"/>
+  <!-- D -->
+  <rect x="8" y="32" width="1" height="4" fill="#FF0000"/>
+  <rect x="9" y="32" width="1" height="1" fill="#FF0000"/>
+  <rect x="9" y="35" width="1" height="1" fill="#FF0000"/>
+  <rect x="10" y="33" width="1" height="2" fill="#FF0000"/>
+  <!-- F -->
+  <rect x="12" y="32" width="1" height="4" fill="#FF0000"/>
+  <rect x="12" y="32" width="2" height="1" fill="#FF0000"/>
+  <rect x="12" y="34" width="2" height="1" fill="#FF0000"/>
+</svg>
