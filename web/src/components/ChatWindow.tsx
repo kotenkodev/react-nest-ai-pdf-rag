@@ -3,12 +3,11 @@ import {
   Cursor,
   Frame,
   Input,
-  List,
   Modal,
   TitleBar,
   useModal,
 } from "@react95/core";
-import React from "react";
+import { Drvspace7, FolderFile, User4, Warning } from "@react95/icons";
 import docChatIcon from "/docchat-icon.svg";
 import { Divider } from "@react95/core/ListDivider";
 import { useAuthStore } from "../store/useAuthStore";
@@ -45,6 +44,18 @@ const DUMMY_MESSAGES = [
     isUser: false,
     createdAt: new Date("2026-08-19T10:43:00"),
   },
+  {
+    id: "5",
+    text: "Hello! I have a question about the document. Can you help me with it? Hello! I have a question about the document. Can you help me with it?",
+    isUser: true,
+    createdAt: new Date("2026-08-19T10:42:00"),
+  },
+  {
+    id: "6",
+    text: "Of course! I'd be happy to help. Please go ahead and ask your question. To make sure I understand correctly, could you also tell me which document you're referring to?Of course! I'd be happy to help. Please go ahead and ask your question. To make sure I understand correctly, could you also tell me which document you're referring to?Of course! I'd be happy to help. Please go ahead and ask your question. To make sure I understand correctly, could you also tell me which document you're referring to?Of course! I'd be happy to help. Please go ahead and ask your question. To make sure I understand correctly, could you also tell me which document you're referring to?",
+    isUser: false,
+    createdAt: new Date("2026-08-19T10:43:00"),
+  },
 ];
 
 export default function ChatWindow() {
@@ -67,9 +78,6 @@ export default function ChatWindow() {
     minimize(CHAT_MODAL);
     focus("no-id");
   };
-
-  const handleButtonClick = (e: React.MouseEvent<HTMLLIElement>) =>
-    alert(e.currentTarget.value);
 
   const canSubmit = status === "ready";
 
@@ -103,16 +111,6 @@ export default function ChatWindow() {
             onClick={handleCloseChatModal}
           />,
         ]}
-        buttons={[
-          {
-            value: "Ok",
-            onClick: handleButtonClick,
-          },
-          {
-            value: "Cancel",
-            onClick: handleButtonClick,
-          },
-        ]}
       >
         <Modal.Content
           w={{
@@ -127,14 +125,19 @@ export default function ChatWindow() {
           }}
           className="max-w-[calc(100vw-24px)] max-h-[85vh] overflow-y-auto"
         >
-          <Frame className="flex justify-end items-center gap-2 text-xs pb-1 mb-2">
-            <div className="text-gray-700">
-              User: <span className="font-bold text-gray-900">{userEmail}</span>
-            </div>
-            <Button className={Cursor.Pointer} onClick={handleSignOut}>
-              Sign Out
-            </Button>
+          <Frame className="mb-2">
+            <Frame className="flex justify-between items-center gap-2 text-xs mb-1.5">
+              <div className="text-gray-700">
+                User:{" "}
+                <span className="font-bold text-gray-900">{userEmail}</span>
+              </div>
+              <Button className={Cursor.Pointer} onClick={handleSignOut}>
+                Sign Out
+              </Button>
+            </Frame>
+            <Divider className="list-none" />
           </Frame>
+
           <Frame
             display={{
               mobile: "block",
@@ -162,11 +165,12 @@ export default function ChatWindow() {
                   PDF Document Control
                 </legend>
                 <div className="flex flex-col gap-2.5 mt-1">
-                  <div className="border border-dashed border-gray-400 p-3 text-center cursor-pointer hover:bg-gray-100">
+                  <div className="border border-dashed border-gray-400 p-3 text-center cursor-pointer hover:bg-gray-100 flex flex-col items-center gap-1">
+                    <FolderFile variant="32x32_4" />
                     <p className="text-xs font-bold text-gray-900">
                       Upload a PDF
                     </p>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
+                    <p className="text-[11px] text-gray-500">
                       Drag here or click (max 10MB)
                     </p>
                   </div>
@@ -179,23 +183,30 @@ export default function ChatWindow() {
                   >
                     <p className="text-gray-600 mb-1">Status:</p>
                     <p
-                      className={`font-bold ${status === "ready" ? "text-green-600" : status === "pending" ? "text-yellow-600" : "text-red-600"} flex items-center gap-1.5 text-xs`}
+                      className={`font-bold ${
+                        status === "ready"
+                          ? "text-green-600"
+                          : status === "pending"
+                            ? "text-yellow-700"
+                            : "text-red-600"
+                      } flex items-center gap-1.5 text-xs`}
                     >
-                      <span
-                        className={`w-2.5 h-2.5 ${status === "ready" ? "bg-green-500" : status === "pending" ? "bg-yellow-500" : "bg-red-500"} rounded-full inline-block`}
-                      />
-                      {status.toUpperCase()}
+                      {status === "ready" && <Drvspace7 variant="32x32_4" />}
+                      {status === "pending" && <Warning variant="32x32_4" />}
+                      {status === "error" && <User4 variant="32x32_4" />}
+                      <span>{status.toUpperCase()}</span>
                     </p>
                   </Frame>
 
                   <Frame
                     boxShadow="$in"
-                    bgColor="##EBEBEB"
+                    bgColor="#EBEBEB"
                     p="8px"
                     className="text-xs"
                   >
-                    <p className="font-bold text-gray-900 truncate">
-                      file_name.pdf
+                    <p className="font-bold text-gray-900 truncate flex items-center gap-1.5">
+                      <FolderFile variant="16x16_4" />
+                      <span>file_name.pdf</span>
                     </p>
                     <p className="text-gray-600 text-[11px] my-2">
                       Size: 4.2 MB
@@ -205,14 +216,14 @@ export default function ChatWindow() {
                       <a
                         href="#"
                         onClick={(e) => e.preventDefault()}
-                        className="text-blue-700 underline font-medium cursor-pointer"
+                        className={`${Cursor.Pointer} hover:text-blue-700 text-blue-600 underline font-medium`}
                       >
                         Download original
                       </a>
                       <a
                         href="#"
                         onClick={(e) => e.preventDefault()}
-                        className="text-red-600 underline font-medium cursor-pointer"
+                        className={`${Cursor.Pointer} hover:text-red-700 text-red-600 underline font-medium`}
                       >
                         Delete
                       </a>
@@ -247,7 +258,7 @@ export default function ChatWindow() {
             >
               <Frame
                 bgColor="white"
-                className="h-[380px] md:h-[440px] overflow-y-auto p-2 flex flex-col gap-2"
+                className="h-[380px] md:h-[480px] overflow-y-auto p-2 flex flex-col gap-2"
               >
                 {DUMMY_MESSAGES.map((message) => (
                   <Message
@@ -272,7 +283,7 @@ export default function ChatWindow() {
             </Frame>
           </Frame>
           <Frame>
-            <Divider className="list-none mt-3" />
+            <Divider className="list-none mt-1" />
             <Frame className="flex items-center gap-3 w-full text-xs py-1">
               <div>For Help: press F1</div>
               <div className="h-3.5 w-[1px] bg-gray-400" />
