@@ -1,0 +1,127 @@
+service: pdf-pipeline
+
+plugins:
+  - serverless-step-functions
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  architecture: arm64
+  environment:
+    DOCUMENTS_TABLE: UserDocuments
+    S3_BUCKET: ${self:service}-${sls:stage}-pdf-uploads
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:GetItem
+          Resource: !GetAtt DocumentsTable.Arn
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+            - s3:ListBucket
+          Resource:
+            - !Sub arn:aws:s3:::${self:service}-${sls:stage}-pdf-uploads
+            - !Sub arn:aws:s3:::${self:service}-${sls:stage}-pdf-uploads/*
+
+functions:
+  extractText:
+    handler: src/handlers.extractText
+  chunkText:
+    handler: src/handlers.chunkText
+  embedChunks:
+    handler: src/handlers.embedChunks
+  indexChunks:
+    handler: src/handlers.indexChunks
+  updateStatus:
+    handler: src/handlers.updateStatus
+
+stepFunctions:
+  stateMachines:
+    pdfProcessingPipeline:
+      name: ${self:service}-${sls:stage}-workflow
+      events:
+        - s3:
+            bucket: ${self:service}-${sls:stage}-pdf-uploads
+            event: s3:ObjectCreated:*
+            existing: true
+      definition:
+        Comment: "PDF Processing Workflow"
+        StartAt: ExtractTextStep
+        States:
+          ExtractTextStep:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [extractText, Arn]
+            Next: ChunkTextStep
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                ResultPath: "$.error"
+                Next: UpdateStatusErrorStep
+          ChunkTextStep:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [chunkText, Arn]
+            Next: EmbedChunksStep
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                ResultPath: "$.error"
+                Next: UpdateStatusErrorStep
+          EmbedChunksStep:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [embedChunks, Arn]
+            Next: IndexChunksStep
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                ResultPath: "$.error"
+                Next: UpdateStatusErrorStep
+          IndexChunksStep:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [indexChunks, Arn]
+            Next: UpdateStatusSuccessStep
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                ResultPath: "$.error"
+                Next: UpdateStatusErrorStep
+          UpdateStatusSuccessStep:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [updateStatus, Arn]
+            Parameters:
+              status: "success"
+              "data.$": "$"
+            End: true
+          UpdateStatusErrorStep:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [updateStatus, Arn]
+            Parameters:
+              status: "error"
+              "error.$": "$.error"
+              "data.$": "$"
+            End: true
+
+resources:
+  Resources:
+    PdfUploadsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${sls:stage}-pdf-uploads
+    DocumentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: UserDocuments
+        AttributeDefinitions:
+          - AttributeName: userEmail
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userEmail
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
