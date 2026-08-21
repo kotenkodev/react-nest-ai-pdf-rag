@@ -11,8 +11,19 @@ export const useGetDocument = () => {
   return useQuery({
     queryKey: DOCUMENT_QUERY_KEY,
     queryFn: async () => {
-      const response = await getDocument();
-      return response;
+      try {
+        const response = await getDocument();
+        return response;
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          return null;
+        }
+        throw err;
+      }
+    },
+    refetchInterval: (query) => {
+      const doc = query.state.data;
+      return doc?.status === "pending" ? 2000 : false;
     },
   });
 };
@@ -34,6 +45,7 @@ export const useDeleteDocument = () => {
   return useMutation({
     mutationFn: () => deleteDocument(),
     onSuccess: () => {
+      queryClient.setQueryData(DOCUMENT_QUERY_KEY, null);
       queryClient.invalidateQueries({ queryKey: DOCUMENT_QUERY_KEY });
     },
   });
