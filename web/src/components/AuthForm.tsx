@@ -56,7 +56,7 @@ export default function AuthForm() {
   };
 
   return (
-    <Frame>
+    <>
       {alertError && (
         <Alert
           id="error-alert"
@@ -159,6 +159,6 @@ export default function AuthForm() {
           </form>
         </Modal.Content>
       </Modal>
-    </Frame>
+    </>
   );
 }

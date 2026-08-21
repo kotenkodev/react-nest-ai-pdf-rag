@@ -13,6 +13,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import ChatBox from "./ChatBox";
 import DocumentControl from "./DocumentControl";
 import {
+  useAskChat,
   useChat,
   useDeleteDocument,
   useGetDocument,
@@ -40,11 +41,21 @@ export default function ChatWindow() {
 
   const [inputMessage, setInputMessage] = useState("");
   const { data: document, isLoading, error } = useGetDocument();
-  const { mutateAsync: uploadDocument } = useUploadDocument();
+  const { mutateAsync: uploadDocument, isPending: isUploading } =
+    useUploadDocument();
   const { mutateAsync: deleteDocument } = useDeleteDocument();
+  const { mutateAsync: askChat } = useAskChat();
 
   const status = document?.status || null;
   const canSubmit = status === "success";
+
+  const handleUpload = async (file: File) => {
+    try {
+      await uploadDocument(file);
+    } catch (err: any) {
+      addErrorMessage(err.message || "Failed to upload document.");
+    }
+  };
 
   const handleSignOut = () => {
     clearUserEmail();
@@ -61,11 +72,17 @@ export default function ChatWindow() {
     focus("no-id");
   };
 
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return;
-    addUserMessage(inputMessage);
+  const handleSendMessage = async () => {
+    const question = inputMessage.trim();
+    if (!question) return;
+    addUserMessage(question);
     setInputMessage("");
-    addBotResponse("Hello");
+    try {
+      const response = await askChat(question);
+      addBotResponse(response.answer);
+    } catch (err: any) {
+      addErrorMessage(err.message || "Failed to send message.");
+    }
   };
 
   const handleDeleteDocument = async () => {
@@ -184,7 +201,9 @@ export default function ChatWindow() {
           <DocumentControl
             document={document}
             status={status}
+            onUpload={handleUpload}
             onDeleteDocument={handleDeleteDocument}
+            isUploading={isUploading}
           />
         </Frame>
 

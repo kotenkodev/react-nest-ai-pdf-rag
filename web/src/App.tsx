@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import "@react95/core/GlobalStyle";
 import "@react95/core/themes/win95.css";
 import { useClippy, ClippyProvider } from "@react95/clippy";
@@ -23,15 +24,35 @@ const CHAT_MODAL = "chat-modal" as const;
 const MyComponent = () => {
   const { clippy } = useClippy();
 
+  useEffect(() => {
+    if (!clippy) return;
+
+    const handleSkipAnimation = () => {
+      clippy.stopCurrent();
+      clippy.stop();
+      clippy.closeBalloon();
+    };
+
+    const el = (clippy as any)._el || document.querySelector(".clippy");
+    if (el) {
+      el.addEventListener("click", handleSkipAnimation);
+      return () => {
+        el.removeEventListener("click", handleSkipAnimation);
+      };
+    }
+  }, [clippy]);
+
+  const handleSpeak = () => {
+    if (!clippy) return;
+    clippy.speak("Hello there! I'm Clippy, your AI assistant.", false);
+    setTimeout(() => {
+      clippy.closeBalloon();
+    }, 4000);
+  };
+
   return (
     <>
-      <Button
-        onClick={() =>
-          clippy?.speak("Hello there! I'm Clippy, your AI assistant.", "Wave")
-        }
-      >
-        Test speack
-      </Button>
+      <Button onClick={handleSpeak}>Test speak</Button>
       <Button onClick={() => clippy?.play("Wave")}>Hello Clippy!</Button>
     </>
   );
@@ -103,7 +124,7 @@ function App() {
       className={Cursor.Auto}
       w="100vw"
       h="100vh"
-      bg="#008080"
+      bgColor="#008080"
       position="relative"
     >
       {icons.map((icon, index) => (

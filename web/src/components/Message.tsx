@@ -2,6 +2,7 @@ import { Frame } from "@react95/core";
 import { Qfecheck111, User } from "@react95/icons";
 import dateFormat from "dateformat";
 import React from "react";
+import ReactMarkdown from "react-markdown";
 
 interface MessageProps {
   id: string;
@@ -40,13 +41,15 @@ export default function Message({
           ) : (
             <Qfecheck111 variant="32x32_4" className="-mr-0.5" />
           )}
-          <span>{isUser ? "YOU (User)" : "ASSISTANT AI"}</span>
+          <span>{isUser ? "YOU (User)" : "AI ASSISTANT"}</span>
         </h4>
         <span className="text-[11px] text-gray-600">
           {dateFormat(createdAt, "h:MM TT")}
         </span>
       </div>
-      <p className="text-gray-900 leading-normal whitespace-pre-wrap">{text}</p>
+      <div className="text-gray-900 leading-normal space-y-1.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_code]:bg-gray-200 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-mono [&_p]:mb-1 [&_strong]:font-bold">
+        <ReactMarkdown>{text}</ReactMarkdown>
+      </div>
     </Frame>
   );
 }

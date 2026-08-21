@@ -2,18 +2,64 @@ import { Cursor, Frame } from "@react95/core";
 import { Divider } from "@react95/core/ListDivider";
 import { Drvspace7, FolderFile, User4, Warning } from "@react95/icons";
 import type { DocumentItem, DocumentStatus } from "../types/document.type";
+import { useRef } from "react";
+import { downloadDocumentFile } from "../services/documentService";
 
 interface DocumentControlProps {
   document: DocumentItem | null | undefined;
   status: DocumentStatus | null;
+  onUpload: (file: File) => void;
   onDeleteDocument: () => void;
+  isUploading?: boolean;
 }
 
 export default function DocumentControl({
   document,
   status,
+  onUpload,
   onDeleteDocument,
+  isUploading = false,
 }: DocumentControlProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleProcessFile = (file: File) => {
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      alert("Only PDF files are allowed.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit.");
+      return;
+    }
+    onUpload(file);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]; // <-- Note: e.target.files (plural)
+    if (selectedFile) {
+      handleProcessFile(selectedFile);
+      e.target.value = ""; // Reset input value
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const selectedFile = e.dataTransfer.files?.[0];
+    if (selectedFile) {
+      handleProcessFile(selectedFile);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDropzoneClick = () => {
+    if (!isUploading) {
+      fileInputRef.current?.click();
+    }
+  };
+
   return (
     <Frame
       w={{
@@ -21,18 +67,33 @@ export default function DocumentControl({
         tablet: "30%",
         desktop: "30%",
       }}
-      className="w-full md:w-[30%] flex-shrink-0 flex flex-col gap-3"
+      className="w-full md:w-[30%] flex-shrink-0 flex flex-col gap-3 min-w-0 overflow-hidden"
     >
-      <fieldset className="border border-gray-400 p-2.5 shadow-sm">
+      <fieldset className="border border-gray-400 p-2.5 shadow-sm min-w-0 overflow-hidden">
         <legend className="text-xs font-bold px-1 text-gray-900">
           PDF Document Control
         </legend>
-        <div className="flex flex-col gap-2.5 mt-1">
-          <div className="border border-dashed border-gray-400 p-3 text-center cursor-pointer hover:bg-gray-100 flex flex-col items-center gap-1">
+        <div className="flex flex-col gap-2.5 mt-1 min-w-0">
+          <div
+            onClick={handleDropzoneClick}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            className={`border border-dashed border-gray-400 p-3 text-center cursor-pointer hover:bg-gray-100 flex flex-col items-center gap-1 ${
+              isUploading ? "opacity-50 pointer-events-none" : ""
+            }`}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleInputChange}
+              className="hidden"
+            />
             <FolderFile variant="32x32_4" />
-            <p className="text-xs font-bold text-gray-900">Upload a PDF</p>
+            <p className="text-xs font-bold text-gray-900">
+              {isUploading ? "Uploading..." : "Upload a PDF"}
+            </p>
             <p className="text-[11px] text-gray-500">
-              Drag here or click (max 10MB)
+              {isUploading ? "Please wait..." : "Drag here or click (max 10MB)"}
             </p>
           </div>
 
@@ -40,7 +101,7 @@ export default function DocumentControl({
             boxShadow="$in"
             bgColor="$inputBackground"
             p="8px"
-            className="text-xs"
+            className="text-xs min-w-0 overflow-hidden"
           >
             <p className="text-gray-600 mb-1">Status:</p>
             {document ? (
@@ -52,12 +113,12 @@ export default function DocumentControl({
                       : status === "pending"
                         ? "text-yellow-700"
                         : "text-red-600"
-                  } flex items-center gap-1.5 text-xs`}
+                  } flex items-center gap-1.5 text-xs min-w-0`}
                 >
-                  {status === "success" && <Drvspace7 variant="32x32_4" />}
-                  {status === "pending" && <Warning variant="32x32_4" />}
-                  {status === "error" && <User4 variant="32x32_4" />}
-                  <span>
+                  {status === "success" && <Drvspace7 variant="32x32_4" className="flex-shrink-0" />}
+                  {status === "pending" && <Warning variant="32x32_4" className="flex-shrink-0" />}
+                  {status === "error" && <User4 variant="32x32_4" className="flex-shrink-0" />}
+                  <span className="truncate min-w-0">
                     {status === "success"
                       ? "READY"
                       : status === "pending"
@@ -83,17 +144,24 @@ export default function DocumentControl({
               boxShadow="$in"
               bgColor="#EBEBEB"
               p="8px"
-              className="text-xs"
+              className="text-xs min-w-0 overflow-hidden"
             >
-              <p className="font-bold text-gray-900 truncate flex items-center gap-1.5">
-                <FolderFile variant="16x16_4" />
-                <span>{document.fileName}</span>
+              <p className="font-bold text-gray-900 flex items-center gap-1.5 min-w-0">
+                <FolderFile variant="16x16_4" className="flex-shrink-0" />
+                <span className="truncate min-w-0 block" title={document.fileName}>
+                  {document.fileName}
+                </span>
               </p>
               <Divider className="list-none my-1.5" />
               <div className="flex justify-between items-center text-[11px] pt-1">
                 <a
                   href="#"
-                  onClick={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (document?.fileName) {
+                      downloadDocumentFile(document.fileName);
+                    }
+                  }}
                   className={`${Cursor.Pointer} hover:text-blue-700 text-blue-600 underline font-medium`}
                 >
                   Download original
