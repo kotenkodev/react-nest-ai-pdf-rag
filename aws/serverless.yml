@@ -48,10 +48,8 @@ functions:
     handler: src/handlers.extractText
   chunkText:
     handler: src/handlers.chunkText
-  embedChunks:
-    handler: src/handlers.embedChunks
-  indexChunks:
-    handler: src/handlers.indexChunks
+  processAndIndexChunks:
+    handler: src/handlers.processAndIndexChunks
   updateStatus:
     handler: src/handlers.updateStatus
 
@@ -60,10 +58,16 @@ stepFunctions:
     pdfProcessingPipeline:
       name: ${self:service}-${sls:stage}-workflow
       events:
-        - s3:
-            bucket: ${self:service}-${sls:stage}-pdf-uploads
-            event: s3:ObjectCreated:*
-            existing: true
+        - eventBridge:
+            event:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - ${self:service}-${sls:stage}-pdf-uploads
       definition:
         Comment: "PDF Processing Workflow"
         StartAt: ExtractTextStep
@@ -81,24 +85,15 @@ stepFunctions:
             Type: Task
             Resource:
               Fn::GetAtt: [chunkText, Arn]
-            Next: EmbedChunksStep
+            Next: ProcessAndIndexChunksStep
             Catch:
               - ErrorEquals: ["States.ALL"]
                 ResultPath: "$.error"
                 Next: UpdateStatusErrorStep
-          EmbedChunksStep:
+          ProcessAndIndexChunksStep:
             Type: Task
             Resource:
-              Fn::GetAtt: [embedChunks, Arn]
-            Next: IndexChunksStep
-            Catch:
-              - ErrorEquals: ["States.ALL"]
-                ResultPath: "$.error"
-                Next: UpdateStatusErrorStep
-          IndexChunksStep:
-            Type: Task
-            Resource:
-              Fn::GetAtt: [indexChunks, Arn]
+              Fn::GetAtt: [processAndIndexChunks, Arn]
             Next: UpdateStatusSuccessStep
             Catch:
               - ErrorEquals: ["States.ALL"]
@@ -128,6 +123,20 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:service}-${sls:stage}-pdf-uploads
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - "*"
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+              AllowedOrigins:
+                - "*"
+        NotificationConfiguration:
+          EventBridgeConfiguration:
+            EventBridgeEnabled: true
     DocumentsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -139,3 +148,43 @@ resources:
           - AttributeName: userEmail
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
+
+    BackendSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Security group for NestJS Backend API server
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 3000
+            ToPort: 3000
+            CidrIp: 0.0.0.0/0
+
+    BackendInstance:
+      Type: AWS::EC2::Instance
+      Properties:
+        InstanceType: t4g.micro
+        ImageId: resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id
+        SecurityGroupIds:
+          - !Ref BackendSecurityGroup
+        Tags:
+          - Key: Name
+            Value: ${self:service}-${sls:stage}-backend-api
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+            apt-get install -y nodejs git
+            npm install -g pm2
+
+  Outputs:
+    BackendPublicIp:
+      Description: Public IP Address of the NestJS Backend EC2 Instance
+      Value: !GetAtt BackendInstance.PublicIp
