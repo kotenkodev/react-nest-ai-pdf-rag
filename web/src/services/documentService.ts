@@ -2,8 +2,9 @@ import axios from "axios";
 import type { DocumentItem } from "../types/document.type";
 import { apiClient } from "./apiClient";
 
-export const getDocument = (): Promise<DocumentItem> => {
-  return apiClient.get("/document");
+export const getDocument = async (): Promise<DocumentItem> => {
+  const response = await apiClient.get<DocumentItem>("/documents");
+  return response.data;
 };
 
 export const initiateDocumentUpload = async (
@@ -13,7 +14,7 @@ export const initiateDocumentUpload = async (
   const response = await apiClient.post<{
     document: DocumentItem;
     presignedPostUrl: string;
-  }>("/document", {
+  }>("/documents", {
     userFilename: file.name,
     size: file.size,
     mimeType,
@@ -50,7 +51,7 @@ export const uploadDocument = async (
   file: File,
   onProgress?: (percent: number) => void,
 ): Promise<DocumentItem> => {
-  const mimeType = getMimeType(file);
+  const mimeType = file.type;
 
   const { document, presignedPostUrl } = await initiateDocumentUpload(
     file,
@@ -63,7 +64,7 @@ export const uploadDocument = async (
 
 export const getDocumentDownloadUrl = async (): Promise<string> => {
   const response = await apiClient.get<{ downloadUrl: string }>(
-    `/document/download`,
+    `/documents/download`,
   );
   return response.data.downloadUrl;
 };
@@ -79,5 +80,5 @@ export const downloadDocumentFile = async (userFilename: string) => {
 };
 
 export const deleteDocument = () => {
-  return apiClient.delete(`/document`);
+  return apiClient.delete(`/documents`);
 };
