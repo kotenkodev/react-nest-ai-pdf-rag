@@ -1,7 +1,7 @@
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { S3EventRecord } from "aws-lambda";
 import pdfParse from "pdf-parse";
-import { FileStatus } from "./constants.js";
+import { DocumentStatus } from "./constants.js";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { Pinecone } from "@pinecone-database/pinecone";
@@ -17,14 +17,35 @@ const pinecone = new Pinecone({ apiKey: env.PINECONE_API_KEY });
 const index = pinecone.Index({ name: env.PINECONE_INDEX });
 
 export interface PipelineEvent {
-  Records: S3EventRecord[];
+  Records?: S3EventRecord[];
   userEmail?: string;
   fileKey?: string;
   text?: string;
   chunks?: string[];
   indexedCount?: number;
-  status?: FileStatus;
+  status?: DocumentStatus;
   error?: any;
+  data?: any;
+}
+
+function safeJsonParse(val: any) {
+  if (typeof val !== "string") return val;
+  try {
+    return JSON.parse(val);
+  } catch {
+    return val;
+  }
+}
+
+function extractErrorMessage(rawError: any): string | undefined {
+  if (!rawError) return undefined;
+  const parsed = safeJsonParse(rawError.Cause || rawError);
+  return (
+    parsed?.errorMessage ||
+    parsed?.message ||
+    parsed?.Error ||
+    (typeof parsed === "string" ? parsed : JSON.stringify(parsed))
+  );
 }
 
 async function generateEmbeddings(
@@ -35,6 +56,9 @@ async function generateEmbeddings(
   const response = await ai.models.embedContent({
     model: "gemini-embedding-001",
     contents: chunks,
+    config: {
+      outputDimensionality: 1024,
+    },
   });
 
   return (
@@ -70,35 +94,64 @@ async function upsertToPinecone(
 export const extractText = async (
   event: PipelineEvent,
 ): Promise<PipelineEvent> => {
-  const bucket = event.Records[0].s3.bucket.name;
-  const key = event.Records[0].s3.object.key;
-  const userEmail = event.userEmail || key.split("/")[0];
-
-  const object = await s3.send(
-    new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    }),
-  );
-
-  if (!object.Body) {
-    throw new Error("No body found in the S3 object");
-  }
-
-  const pdfBuffer = Buffer.from(await object.Body.transformToByteArray());
-  const parseResult = await pdfParse(pdfBuffer);
-
   console.log(
     "Step 1: Extracting text - input:",
     JSON.stringify(event, null, 2),
   );
 
-  return {
-    ...event,
-    text: parseResult.text,
-    userEmail,
-    fileKey: key,
-  };
+  try {
+    const eventDetail = (event as any).detail;
+    const s3Record = event.Records?.[0]?.s3;
+
+    const bucket = eventDetail?.bucket?.name || s3Record?.bucket?.name;
+    const rawKey = eventDetail?.object?.key || s3Record?.object?.key;
+
+    if (!bucket || !rawKey) {
+      throw new Error(
+        "Invalid S3 event payload: bucket name or object key missing",
+      );
+    }
+
+    const key = decodeURIComponent(rawKey.replace(/\+/g, " "));
+
+    const keyParts = key.split("/");
+    const userEmail =
+      event.userEmail || (keyParts.length > 2 ? keyParts[1] : keyParts[0]);
+
+    const object = await s3.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }),
+    );
+
+    if (!object.Body) {
+      throw new Error("Failed to download PDF object from S3");
+    }
+
+    const pdfBuffer = Buffer.from(await object.Body.transformToByteArray());
+    const parseResult = await pdfParse(pdfBuffer);
+
+    if (!parseResult.text || !parseResult.text.trim()) {
+      throw new Error(
+        "No readable text found in PDF document (may be empty or image-only)",
+      );
+    }
+
+    return {
+      ...event,
+      text: parseResult.text,
+      userEmail,
+      fileKey: key,
+    };
+  } catch (err: any) {
+    console.error("extractText step failed:", err);
+    throw new Error(
+      err.message && !err.message.includes("at ")
+        ? err.message
+        : "Failed to extract text from PDF document",
+    );
+  }
 };
 
 export const chunkText = async (
@@ -106,61 +159,62 @@ export const chunkText = async (
 ): Promise<PipelineEvent> => {
   console.log("Step 2: Chunking text - input:", JSON.stringify(event, null, 2));
 
-  const text = event.text;
+  try {
+    const text = event.text;
+    if (!text || !text.trim()) {
+      throw new Error("No readable text found to chunk");
+    }
 
-  if (!text) {
-    throw new Error("Text not found");
+    const chunks = text.match(/[\s\S]{1,500}(?!\w)/g) || [];
+    if (chunks.length === 0) {
+      throw new Error("Document content could not be split into valid chunks");
+    }
+
+    return {
+      ...event,
+      chunks,
+    };
+  } catch (err: any) {
+    console.error("chunkText step failed:", err);
+    throw new Error(err.message || "Failed to split document into text chunks");
   }
-
-  const chunks = text.match(/[\s\S]{1,500}(?!\w)/g) || [];
-
-  return {
-    ...event,
-    chunks,
-  };
 };
 
-export const embedChunks = async (
+export const processAndIndexChunks = async (
   event: PipelineEvent,
 ): Promise<PipelineEvent> => {
   console.log(
-    "Step 3: Embedding and indexing chunks - input:",
+    "Step 3: Embedding chunks - input:",
     JSON.stringify(event, null, 2),
   );
 
-  const chunks = event.chunks || [];
-  const fileKey = event.fileKey;
-  const userEmail = event.userEmail;
+  try {
+    const chunks = event.chunks || [];
+    const fileKey = event.fileKey;
+    const userEmail = event.userEmail;
 
-  if (!fileKey || !userEmail) {
-    throw new Error("File key or user email not found");
+    if (!fileKey || !userEmail) {
+      throw new Error(
+        "Document key or user email missing for embedding processing",
+      );
+    }
+
+    const records = await generateEmbeddings(chunks, fileKey, userEmail);
+
+    if (records.length > 0) {
+      await upsertToPinecone(records, userEmail);
+    }
+
+    return {
+      ...event,
+      userEmail,
+      fileKey,
+      indexedCount: records.length,
+    };
+  } catch (err: any) {
+    console.error("processAndIndexChunks step failed:", err);
+    throw new Error("Failed to generate AI embeddings or index vector records");
   }
-
-  const records = await generateEmbeddings(chunks, fileKey, userEmail);
-
-  if (records.length > 0) {
-    await upsertToPinecone(records, userEmail);
-  }
-
-  return {
-    Records: event.Records,
-    userEmail,
-    fileKey,
-    indexedCount: records.length,
-  };
-};
-
-export const indexChunks = async (
-  event: PipelineEvent,
-): Promise<PipelineEvent> => {
-  console.log(
-    "Step 4: Indexing step completed - input:",
-    JSON.stringify(event, null, 2),
-  );
-
-  return {
-    ...event,
-  };
 };
 
 export const updateStatus = async (
@@ -171,38 +225,58 @@ export const updateStatus = async (
     JSON.stringify(event, null, 2),
   );
 
-  const userEmail = event.userEmail;
-  const fileKey = event.fileKey;
-  const status =
-    event.status || (event.error ? FileStatus.ERROR : FileStatus.SUCCESS);
+  const data = event.data || event;
+  const eventDetail = (data as any).detail || (event as any).detail;
 
-  if (!userEmail || !fileKey) {
-    throw new Error("User email or file key not found");
+  const rawS3Key =
+    eventDetail?.object?.key || data.Records?.[0]?.s3?.object?.key;
+
+  const s3Key = rawS3Key
+    ? decodeURIComponent(rawS3Key.replace(/\+/g, " "))
+    : undefined;
+  const s3Email = s3Key
+    ? s3Key.split("/").length > 2
+      ? s3Key.split("/")[1]
+      : s3Key.split("/")[0]
+    : undefined;
+
+  const userEmail = event.userEmail || data.userEmail || s3Email;
+  const fileKey = event.fileKey || data.fileKey || s3Key;
+
+  if (!userEmail) {
+    throw new Error("User email could not be resolved in updateStatus payload");
   }
+
+  const rawError = event.error || data.error;
+  const status =
+    event.status || (rawError ? DocumentStatus.ERROR : DocumentStatus.SUCCESS);
+
+  const userErrorMessage = extractErrorMessage(rawError);
 
   await docClient.send(
     new UpdateCommand({
       TableName: tableName,
       Key: { userEmail },
-      UpdateExpression: "SET #status = :status, updatedAt = :updatedAt",
+      UpdateExpression: userErrorMessage
+        ? "SET #status = :status, errorMessage = :errorMessage"
+        : "SET #status = :status",
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: {
         ":status": status,
-        ":updatedAt": new Date().toISOString(),
+        ...(userErrorMessage ? { ":errorMessage": userErrorMessage } : {}),
       },
     }),
   );
 
   const apiUrl = env.API_URL || "http://localhost:3000";
   try {
-    await fetch(`${apiUrl}/api/documents/status-webhook`, {
+    await fetch(`${apiUrl}/documents/set-status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userEmail,
-        fileKey,
         status,
-        error: event.error,
+        errorMessage: userErrorMessage,
       }),
     });
   } catch (err) {
@@ -211,6 +285,9 @@ export const updateStatus = async (
 
   return {
     ...event,
+    userEmail,
+    fileKey,
     status,
+    ...(userErrorMessage ? { error: userErrorMessage } : {}),
   };
 };
