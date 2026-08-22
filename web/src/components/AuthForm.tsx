@@ -57,22 +57,6 @@ export default function AuthForm() {
 
   return (
     <>
-      {alertError && (
-        <Alert
-          id="error-alert"
-          type="error"
-          title="Error"
-          hasSound
-          hasWindowButton
-          message={alertError}
-          onClose={() => setAlertError(null)}
-          titleBarOptions={[
-            <TitleBar.Close key="close" onClick={() => setAlertError(null)} />,
-          ]}
-          buttons={[{ value: "OK", onClick: () => setAlertError(null) }]}
-        />
-      )}
-
       <Modal
         id={AUTH_MODAL}
         className={alertError ? "pointer-events-none select-none" : ""}
@@ -159,6 +143,21 @@ export default function AuthForm() {
           </form>
         </Modal.Content>
       </Modal>
+
+      {alertError && (
+        <Alert
+          id="error-alert"
+          type="error"
+          title="Error"
+          hasWindowButton
+          message={alertError}
+          onClose={() => setAlertError(null)}
+          titleBarOptions={[
+            <TitleBar.Close key="close" onClick={() => setAlertError(null)} />,
+          ]}
+          buttons={[{ value: "OK", onClick: () => setAlertError(null) }]}
+        />
+      )}
     </>
   );
 }

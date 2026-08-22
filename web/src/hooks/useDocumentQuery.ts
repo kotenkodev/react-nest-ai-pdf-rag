@@ -21,10 +21,8 @@ export const useGetDocument = () => {
         throw err;
       }
     },
-    refetchInterval: (query) => {
-      const doc = query.state.data;
-      return doc?.status === "pending" ? 2000 : false;
-    },
+    refetchInterval: 2000,
+    refetchIntervalInBackground: true,
   });
 };
 
@@ -33,7 +31,8 @@ export const useUploadDocument = () => {
 
   return useMutation({
     mutationFn: (file: File) => uploadDocument(file),
-    onSuccess: () => {
+    onSuccess: (newDoc) => {
+      queryClient.setQueryData(DOCUMENT_QUERY_KEY, newDoc);
       queryClient.invalidateQueries({ queryKey: DOCUMENT_QUERY_KEY });
     },
   });

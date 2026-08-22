@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Button,
   Cursor,
   Frame,
@@ -19,6 +20,7 @@ import {
   useGetDocument,
   useUploadDocument,
 } from "../hooks";
+import { formatErrorMessage } from "../utils/formatErrorMessage";
 
 const CHAT_MODAL = "chat-modal" as const;
 
@@ -30,6 +32,7 @@ export default function ChatWindow() {
   const { remove, minimize, focus } = useModal();
   const { clearUserEmail, userEmail, closeWindow } = useAuthStore();
   const [isMaximized, setIsMaximized] = useState(false);
+  const [alertError, setAlertError] = useState<string | null>(null);
 
   const {
     messages,
@@ -40,11 +43,11 @@ export default function ChatWindow() {
   } = useChat();
 
   const [inputMessage, setInputMessage] = useState("");
-  const { data: document, isLoading, error } = useGetDocument();
+  const { data: document } = useGetDocument();
   const { mutateAsync: uploadDocument, isPending: isUploading } =
     useUploadDocument();
   const { mutateAsync: deleteDocument } = useDeleteDocument();
-  const { mutateAsync: askChat } = useAskChat();
+  const { mutateAsync: askChat, isPending: isAsking } = useAskChat();
 
   const status = document?.status || null;
   const canSubmit = status === "success";
@@ -53,7 +56,9 @@ export default function ChatWindow() {
     try {
       await uploadDocument(file);
     } catch (err: any) {
-      addErrorMessage(err.message || "Failed to upload document.");
+      addErrorMessage(
+        formatErrorMessage(err, "Failed to upload document. Please try again."),
+      );
     }
   };
 
@@ -81,7 +86,12 @@ export default function ChatWindow() {
       const response = await askChat(question);
       addBotResponse(response.answer);
     } catch (err: any) {
-      addErrorMessage(err.message || "Failed to send message.");
+      addErrorMessage(
+        formatErrorMessage(
+          err,
+          "Failed to get a response from AI assistant. Please try again.",
+        ),
+      );
     }
   };
 
@@ -90,18 +100,21 @@ export default function ChatWindow() {
       await deleteDocument();
       clearMessages();
     } catch (err: any) {
-      addErrorMessage(err.message || "Failed to delete document.");
+      addErrorMessage(
+        formatErrorMessage(err, "Failed to delete document. Please try again."),
+      );
     }
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       id="chat-modal"
       icon={chatModalIcon}
       title="DocChat - PDF Assistant"
-      className={
+      className={`${
         isMaximized ? "!top-0 !left-0 !w-screen !h-[calc(100vh-28px)]" : ""
-      }
+      } ${alertError ? "pointer-events-none select-none" : ""}`}
       dragOptions={{
         defaultPosition: {
           x: 50,
@@ -111,7 +124,7 @@ export default function ChatWindow() {
           x: isMaximized ? 0 : null,
           y: isMaximized ? 0 : null,
         },
-        disabled: isMaximized,
+        disabled: isMaximized || !!alertError,
         onDragStart: () => {
           window.document.body.classList.add("dragging");
         },
@@ -188,12 +201,13 @@ export default function ChatWindow() {
             desktop: "$4",
           }}
           gap="$4"
-          className="flex flex-col md:flex-row-reverse gap-4 w-full flex-1 min-h-0 overflow-y-auto md:overflow-hidden"
+          className="flex flex-col md:flex-row-reverse gap-4 w-full flex-1 min-h-0 overflow-y-auto md:overflow-visible relative z-10"
         >
           <ChatBox
             messages={messages}
             inputMessage={inputMessage}
             canSubmit={canSubmit}
+            isAsking={isAsking}
             onInputChange={(e) => setInputMessage(e.target.value)}
             onSendMessage={handleSendMessage}
           />
@@ -204,6 +218,7 @@ export default function ChatWindow() {
             onUpload={handleUpload}
             onDeleteDocument={handleDeleteDocument}
             isUploading={isUploading}
+            onError={(msg) => setAlertError(msg)}
           />
         </Frame>
 
@@ -219,5 +234,21 @@ export default function ChatWindow() {
         </Frame>
       </Modal.Content>
     </Modal>
+
+    {alertError && (
+      <Alert
+        id="doc-chat-alert"
+        type="error"
+        title="Error"
+        hasWindowButton
+        message={alertError}
+        onClose={() => setAlertError(null)}
+        titleBarOptions={[
+          <TitleBar.Close key="close" onClick={() => setAlertError(null)} />,
+        ]}
+        buttons={[{ value: "OK", onClick: () => setAlertError(null) }]}
+      />
+    )}
+    </>
   );
 }

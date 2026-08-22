@@ -1,8 +1,8 @@
-import { Cursor, Frame } from "@react95/core";
+import { Alert, Cursor, Frame, TitleBar, Tooltip } from "@react95/core";
 import { Divider } from "@react95/core/ListDivider";
 import { Drvspace7, FolderFile, User4, Warning } from "@react95/icons";
 import type { DocumentItem, DocumentStatus } from "../types/document.type";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { downloadDocumentFile } from "../services/documentService";
 
 interface DocumentControlProps {
@@ -11,6 +11,7 @@ interface DocumentControlProps {
   onUpload: (file: File) => void;
   onDeleteDocument: () => void;
   isUploading?: boolean;
+  onError?: (errorMessage: string) => void;
 }
 
 export default function DocumentControl({
@@ -19,23 +20,39 @@ export default function DocumentControl({
   onUpload,
   onDeleteDocument,
   isUploading = false,
+  onError,
 }: DocumentControlProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [alertError, setAlertError] = useState<string | null>(null);
+
+  const triggerError = (msg: string) => {
+    if (onError) {
+      onError(msg);
+    } else {
+      setAlertError(msg);
+    }
+  };
 
   const handleProcessFile = (file: File) => {
+    if (document) {
+      triggerError(
+        "Only 1 PDF file is allowed per user. Please delete the existing file first before uploading a new one.",
+      );
+      return;
+    }
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      alert("Only PDF files are allowed.");
+      triggerError("Only PDF files are allowed.");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert("File size exceeds 10MB limit.");
+      triggerError("File size exceeds 10MB limit.");
       return;
     }
     onUpload(file);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]; // <-- Note: e.target.files (plural)
+    const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       handleProcessFile(selectedFile);
       e.target.value = ""; // Reset input value
@@ -44,6 +61,12 @@ export default function DocumentControl({
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (document) {
+      triggerError(
+        "Only 1 PDF file is allowed per user. Please delete the existing file first before uploading a new one.",
+      );
+      return;
+    }
     const selectedFile = e.dataTransfer.files?.[0];
     if (selectedFile) {
       handleProcessFile(selectedFile);
@@ -55,21 +78,45 @@ export default function DocumentControl({
   };
 
   const handleDropzoneClick = () => {
+    if (document) {
+      triggerError(
+        "Only 1 PDF file is allowed per user. Please delete the existing file first before uploading a new one.",
+      );
+      return;
+    }
     if (!isUploading) {
       fileInputRef.current?.click();
     }
   };
 
+  const hasDocument = !!document;
+
   return (
-    <Frame
-      w={{
-        mobile: "100%",
-        tablet: "30%",
-        desktop: "30%",
-      }}
-      className="w-full md:w-[30%] flex-shrink-0 flex flex-col gap-3 min-w-0 overflow-hidden"
-    >
-      <fieldset className="border border-gray-400 p-2.5 shadow-sm min-w-0 overflow-hidden">
+    <>
+      {alertError && (
+        <Alert
+          id="doc-control-error-alert"
+          type="error"
+          title="Error"
+          hasWindowButton
+          message={alertError}
+          onClose={() => setAlertError(null)}
+          titleBarOptions={[
+            <TitleBar.Close key="close" onClick={() => setAlertError(null)} />,
+          ]}
+          buttons={[{ value: "OK", onClick: () => setAlertError(null) }]}
+        />
+      )}
+
+      <Frame
+        w={{
+          mobile: "100%",
+          tablet: "30%",
+          desktop: "30%",
+        }}
+        className="w-full md:w-[30%] flex-shrink-0 flex flex-col gap-3 min-w-0 relative z-20"
+      >
+      <fieldset className="border border-gray-400 p-2.5 shadow-sm min-w-0">
         <legend className="text-xs font-bold px-1 text-gray-900">
           PDF Document Control
         </legend>
@@ -78,22 +125,35 @@ export default function DocumentControl({
             onClick={handleDropzoneClick}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
-            className={`border border-dashed border-gray-400 p-3 text-center cursor-pointer hover:bg-gray-100 flex flex-col items-center gap-1 ${
-              isUploading ? "opacity-50 pointer-events-none" : ""
+            className={`border border-dashed border-gray-400 p-3 text-center flex flex-col items-center gap-1 ${
+              hasDocument
+                ? "opacity-60 cursor-not-allowed bg-gray-100"
+                : isUploading
+                  ? "opacity-50 pointer-events-none"
+                  : "cursor-pointer hover:bg-gray-100"
             }`}
           >
             <input
               type="file"
+              accept=".pdf,application/pdf"
               ref={fileInputRef}
               onChange={handleInputChange}
               className="hidden"
             />
             <FolderFile variant="32x32_4" />
             <p className="text-xs font-bold text-gray-900">
-              {isUploading ? "Uploading..." : "Upload a PDF"}
+              {hasDocument
+                ? "Delete file to upload new"
+                : isUploading
+                  ? "Uploading..."
+                  : "Upload a PDF"}
             </p>
             <p className="text-[11px] text-gray-500">
-              {isUploading ? "Please wait..." : "Drag here or click (max 10MB)"}
+              {hasDocument
+                ? "Max 1 PDF allowed per user"
+                : isUploading
+                  ? "Please wait..."
+                  : "Drag here or click (max 10MB)"}
             </p>
           </div>
 
@@ -115,9 +175,15 @@ export default function DocumentControl({
                         : "text-red-600"
                   } flex items-center gap-1.5 text-xs min-w-0`}
                 >
-                  {status === "success" && <Drvspace7 variant="32x32_4" className="flex-shrink-0" />}
-                  {status === "pending" && <Warning variant="32x32_4" className="flex-shrink-0" />}
-                  {status === "error" && <User4 variant="32x32_4" className="flex-shrink-0" />}
+                  {status === "success" && (
+                    <Drvspace7 variant="32x32_4" className="flex-shrink-0" />
+                  )}
+                  {status === "pending" && (
+                    <Warning variant="32x32_4" className="flex-shrink-0" />
+                  )}
+                  {status === "error" && (
+                    <User4 variant="32x32_4" className="flex-shrink-0" />
+                  )}
                   <span className="truncate min-w-0">
                     {status === "success"
                       ? "READY"
@@ -144,13 +210,18 @@ export default function DocumentControl({
               boxShadow="$in"
               bgColor="#EBEBEB"
               p="8px"
-              className="text-xs min-w-0 overflow-hidden"
+              className="text-xs min-w-0 relative z-30"
             >
-              <p className="font-bold text-gray-900 flex items-center gap-1.5 min-w-0">
+              <p className="font-bold flex items-center gap-1.5 min-w-0">
                 <FolderFile variant="16x16_4" className="flex-shrink-0" />
-                <span className="truncate min-w-0 block" title={document.fileName}>
-                  {document.fileName}
-                </span>
+                <Tooltip
+                  text={document.fileName}
+                  className="relative z-50 min-w-0 flex-1"
+                >
+                  <span className="truncate block min-w-0">
+                    {document.fileName}
+                  </span>
+                </Tooltip>
               </p>
               <Divider className="list-none my-1.5" />
               <div className="flex justify-between items-center text-[11px] pt-1">
@@ -200,5 +271,6 @@ export default function DocumentControl({
         </ul>
       </fieldset>
     </Frame>
+    </>
   );
 }
