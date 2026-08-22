@@ -37,11 +37,6 @@ export class DocumentsController {
     return this.documentsService.createDocument(email, data);
   }
 
-  @Post('set-status')
-  public async setStatus(@Body() documentDto: SetDocumentStatusDto) {
-    return this.documentsService.setStatus(documentDto);
-  }
-
   @Delete()
   @UseGuards(EmailGuard)
   public async deleteDocument(@CurrentUserEmail() email: string) {

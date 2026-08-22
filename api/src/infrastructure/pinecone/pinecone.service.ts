@@ -56,9 +56,10 @@ export class PineconeService {
     try {
       await this.index.namespace(userEmail).deleteAll();
       this.logger.log(`Deleted all vectors for user ${userEmail}`);
-    } catch (error) {
-      this.logger.error(`Error deleting vectors for user ${userEmail}:`, error);
-      throw error;
+    } catch (error: any) {
+      this.logger.warn(
+        `Could not delete vectors for user ${userEmail} (namespace may not exist yet): ${error?.message || error}`,
+      );
     }
   }
 }

@@ -38,26 +38,6 @@ export class DocumentRepository {
     return this.dynamodbService.put<DocumentEntity>(this.tableName, document);
   }
 
-  async setStatus(
-    userEmail: string,
-    status: DocumentStatus,
-    errorMessage?: string,
-  ): Promise<DocumentEntity | null> {
-    return this.dynamodbService.update<DocumentEntity>(
-      this.tableName,
-      { userEmail },
-      'SET #status = :status, #errorMessage = :errorMessage',
-      {
-        '#status': 'status',
-        '#errorMessage': 'errorMessage',
-      },
-      {
-        ':status': status,
-        ':errorMessage': errorMessage ?? null,
-      },
-    );
-  }
-
   async delete(userEmail: string): Promise<void> {
     await this.dynamodbService.delete(this.tableName, { userEmail });
   }

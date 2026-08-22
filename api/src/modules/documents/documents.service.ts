@@ -71,20 +71,6 @@ export class DocumentsService {
     );
   }
 
-  async setStatus(data: SetDocumentStatusDto): Promise<DocumentEntity> {
-    const updatedDocument = await this.repository.setStatus(
-      data.userEmail,
-      data.status,
-      data.errorMessage,
-    );
-
-    if (!updatedDocument) {
-      throw new NotFoundException('Document not found');
-    }
-
-    return updatedDocument;
-  }
-
   async deleteDocument(email: string): Promise<boolean> {
     const document = await this.getDocumentByEmail(email);
 

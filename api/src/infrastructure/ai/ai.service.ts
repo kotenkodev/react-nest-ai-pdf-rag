@@ -8,7 +8,7 @@ export class AiService {
 
   constructor(configService: ConfigService) {
     this.genAI = new GoogleGenAI({
-      apiKey: configService.get<string>('GOOGLE_API_KEY'),
+      apiKey: configService.get<string>('GEMINI_API_KEY'),
     });
   }
 
