@@ -183,7 +183,12 @@ resources:
             apt-get install -y nodejs git
             npm install -g pm2
 
+    BackendElasticIP:
+      Type: AWS::EC2::EIP
+      Properties:
+        InstanceId: !Ref BackendInstance
+
   Outputs:
     BackendPublicIp:
-      Description: Public IP Address of the NestJS Backend EC2 Instance
-      Value: !GetAtt BackendInstance.PublicIp
+      Description: Static Elastic IP Address of the NestJS Backend EC2 Instance
+      Value: !Ref BackendElasticIP

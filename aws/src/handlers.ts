@@ -1,4 +1,9 @@
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { S3EventRecord } from "aws-lambda";
 import pdfParse from "pdf-parse";
 import { DocumentStatus } from "./constants.js";
@@ -20,8 +25,9 @@ export interface PipelineEvent {
   Records?: S3EventRecord[];
   userEmail?: string;
   fileKey?: string;
-  text?: string;
-  chunks?: string[];
+  textKey?: string;
+  chunksKey?: string;
+  bucket?: string;
   indexedCount?: number;
   status?: DocumentStatus;
   error?: any;
@@ -138,11 +144,21 @@ export const extractText = async (
       );
     }
 
+    const textKey = `temp_extracted/${key}.txt`;
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: textKey,
+        Body: parseResult.text,
+        ContentType: "text/plain; charset=utf-8",
+      }),
+    );
+
     return {
-      ...event,
-      text: parseResult.text,
       userEmail,
       fileKey: key,
+      textKey,
+      bucket,
     };
   } catch (err: any) {
     console.error("extractText step failed:", err);
@@ -160,7 +176,28 @@ export const chunkText = async (
   console.log("Step 2: Chunking text - input:", JSON.stringify(event, null, 2));
 
   try {
-    const text = event.text;
+    const bucket = event.bucket;
+    const textKey = event.textKey;
+    const fileKey = event.fileKey;
+
+    if (!bucket || !textKey || !fileKey) {
+      throw new Error(
+        "Missing S3 bucket, fileKey, or textKey for chunking step",
+      );
+    }
+
+    const object = await s3.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: textKey,
+      }),
+    );
+
+    if (!object.Body) {
+      throw new Error("Failed to read extracted text from S3");
+    }
+
+    const text = await object.Body.transformToString();
     if (!text || !text.trim()) {
       throw new Error("No readable text found to chunk");
     }
@@ -170,9 +207,22 @@ export const chunkText = async (
       throw new Error("Document content could not be split into valid chunks");
     }
 
+    const chunksKey = `temp_chunks/${fileKey}.json`;
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: chunksKey,
+        Body: JSON.stringify(chunks),
+        ContentType: "application/json",
+      }),
+    );
+
     return {
-      ...event,
-      chunks,
+      userEmail: event.userEmail,
+      fileKey,
+      chunksKey,
+      textKey,
+      bucket,
     };
   } catch (err: any) {
     console.error("chunkText step failed:", err);
@@ -189,15 +239,30 @@ export const processAndIndexChunks = async (
   );
 
   try {
-    const chunks = event.chunks || [];
+    const bucket = event.bucket;
+    const chunksKey = event.chunksKey;
     const fileKey = event.fileKey;
     const userEmail = event.userEmail;
 
-    if (!fileKey || !userEmail) {
+    if (!fileKey || !userEmail || !chunksKey || !bucket) {
       throw new Error(
-        "Document key or user email missing for embedding processing",
+        "Document key, user email, bucket, or chunksKey missing for embedding processing",
       );
     }
+
+    const object = await s3.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: chunksKey,
+      }),
+    );
+
+    if (!object.Body) {
+      throw new Error("Failed to read chunks JSON from S3");
+    }
+
+    const chunksJson = await object.Body.transformToString();
+    const chunks: string[] = JSON.parse(chunksJson);
 
     const records = await generateEmbeddings(chunks, fileKey, userEmail);
 
@@ -205,11 +270,24 @@ export const processAndIndexChunks = async (
       await upsertToPinecone(records, userEmail);
     }
 
+    try {
+      if (event.textKey) {
+        await s3.send(
+          new DeleteObjectCommand({ Bucket: bucket, Key: event.textKey }),
+        );
+      }
+      await s3.send(
+        new DeleteObjectCommand({ Bucket: bucket, Key: chunksKey }),
+      );
+    } catch (cleanupErr) {
+      console.warn("Failed to clean up temporary S3 files:", cleanupErr);
+    }
+
     return {
-      ...event,
       userEmail,
       fileKey,
       indexedCount: records.length,
+      bucket,
     };
   } catch (err: any) {
     console.error("processAndIndexChunks step failed:", err);
