@@ -23,7 +23,6 @@ provider:
     GEMINI_API_KEY: ${env:GEMINI_API_KEY, ''}
     PINECONE_API_KEY: ${env:PINECONE_API_KEY, ''}
     PINECONE_INDEX: ${env:PINECONE_INDEX, 'pdf-documents'}
-    API_URL: ${env:API_URL, 'http://localhost:3000'}
   iam:
     role:
       statements:

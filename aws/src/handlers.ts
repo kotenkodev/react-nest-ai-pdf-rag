@@ -268,21 +268,6 @@ export const updateStatus = async (
     }),
   );
 
-  const apiUrl = env.API_URL || "http://localhost:3000";
-  try {
-    await fetch(`${apiUrl}/documents/set-status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userEmail,
-        status,
-        errorMessage: userErrorMessage,
-      }),
-    });
-  } catch (err) {
-    console.error("Failed to notify backend API via HTTP:", err);
-  }
-
   return {
     ...event,
     userEmail,
