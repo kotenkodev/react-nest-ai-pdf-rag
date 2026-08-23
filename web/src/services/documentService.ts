@@ -28,7 +28,7 @@ export const uploadFileToS3 = async (
   mimeType: string,
   onProgress?: (percent: number) => void,
 ): Promise<void> => {
-  const response = await axios.put(presignedUrl, file, {
+  await axios.put(presignedUrl, file, {
     headers: {
       "Content-Type": mimeType,
     },
@@ -41,10 +41,6 @@ export const uploadFileToS3 = async (
       }
     },
   });
-
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(`S3 upload failed with status: ${response.status}`);
-  }
 };
 
 export const uploadDocument = async (

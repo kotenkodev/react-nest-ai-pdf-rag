@@ -109,7 +109,7 @@ export default function ChatWindow() {
   return (
     <>
       <Modal
-      id="chat-modal"
+      id={CHAT_MODAL}
       icon={chatModalIcon}
       title="DocChat - PDF Assistant"
       className={`${

@@ -4,10 +4,13 @@ import {
   uploadDocument,
   deleteDocument,
 } from "../services/documentService";
+import { useAuthStore } from "../store/useAuthStore";
 
 export const DOCUMENT_QUERY_KEY = ["document"] as const;
 
 export const useGetDocument = () => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
   return useQuery({
     queryKey: DOCUMENT_QUERY_KEY,
     queryFn: async () => {
@@ -21,7 +24,8 @@ export const useGetDocument = () => {
         throw err;
       }
     },
-    refetchInterval: 2000,
+    enabled: isAuthenticated,
+    refetchInterval: isAuthenticated ? 2000 : false,
     refetchIntervalInBackground: true,
   });
 };
