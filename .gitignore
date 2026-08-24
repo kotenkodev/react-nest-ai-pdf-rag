@@ -1,0 +1,14 @@
+# Dependencies & Build
+node_modules/
+dist/
+build/
+
+# Serverless & Vercel deployment caches
+.serverless/
+.vercel/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+

@@ -121,8 +121,8 @@ export default function ChatWindow() {
           y: 50,
         },
         position: {
-          x: isMaximized ? 0 : null,
-          y: isMaximized ? 0 : null,
+          x: isMaximized ? 0 : (null as any),
+          y: isMaximized ? 0 : (null as any),
         },
         disabled: isMaximized || !!alertError,
         onDragStart: () => {

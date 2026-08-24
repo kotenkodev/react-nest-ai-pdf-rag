@@ -6,59 +6,63 @@ on:
     paths: [api/**, .github/workflows/deploy-api.yml]
   workflow_dispatch:
 
-concurrency:
-  group: deploy-api
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: api/package-lock.json
-
-      - run: npm ci
-        working-directory: api
-
-      - run: npm run build
-        working-directory: api
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: api-dist
-          path: api/dist
-          retention-days: 1
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: api-dist
-          path: api/dist
-
-      - uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST_IP }}
+          host: ${{ vars.EC2_HOST_IP }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          envs: GH_TOKEN
           script: |
             set -euo pipefail
+            sudo mkdir -p /var/www/pdf-assistant
+            sudo chown -R ubuntu:ubuntu /var/www/pdf-assistant
+
+            if [ ! -d "/var/www/pdf-assistant/.git" ]; then
+              sudo rm -rf /var/www/pdf-assistant/* /var/www/pdf-assistant/.* 2>/dev/null || true
+              git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" /var/www/pdf-assistant
+            else
+              cd /var/www/pdf-assistant
+              git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+
             cd /var/www/pdf-assistant/api
 
-            git fetch origin main
-            git reset --hard origin/main
+            cat <<EOF > .env
+            PORT=3000
+            NODE_ENV=production
+            CORS_ORIGINS=*
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_REGION=${{ vars.AWS_REGION }}
+            AWS_BUCKET_NAME=${{ vars.AWS_BUCKET_NAME }}
+            TABLE_NAME=${{ vars.TABLE_NAME }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}
+            PINECONE_INDEX=${{ vars.PINECONE_INDEX }}
+            JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+            EOF
 
-            npm ci --omit=dev
+            npm ci
             npm run build
-
             pm2 reload pdf-api || pm2 start dist/main.js --name pdf-api
             pm2 save
+
+      - name: Smoke test API endpoint
+        run: |
+          echo "Waiting 5s for NestJS API to warm up on EC2..."
+          sleep 5
+          curl --fail --retry 5 --retry-delay 3 --retry-all-errors http://${{ vars.EC2_HOST_IP }}:3000/
+
+

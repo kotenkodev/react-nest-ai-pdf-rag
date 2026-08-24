@@ -171,11 +171,18 @@ resources:
             ToPort: 3000
             CidrIp: 0.0.0.0/0
 
+    BackendKeyPair:
+      Type: AWS::EC2::KeyPair
+      Properties:
+        KeyName: ${self:service}-${sls:stage}-key
+        KeyType: rsa
+
     BackendInstance:
       Type: AWS::EC2::Instance
       Properties:
         InstanceType: t4g.micro
         ImageId: resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id
+        KeyName: !Ref BackendKeyPair
         SecurityGroupIds:
           - !Ref BackendSecurityGroup
         Tags:
@@ -184,9 +191,12 @@ resources:
         UserData:
           Fn::Base64: |
             #!/bin/bash
+            set -euo pipefail
             curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-            apt-get install -y nodejs git
+            DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs git
             npm install -g pm2
+            mkdir -p /var/www/pdf-assistant
+            chown -R ubuntu:ubuntu /var/www/pdf-assistant
 
     BackendElasticIP:
       Type: AWS::EC2::EIP
@@ -197,3 +207,6 @@ resources:
     BackendPublicIp:
       Description: Static Elastic IP Address of the NestJS Backend EC2 Instance
       Value: !Ref BackendElasticIP
+    BackendKeyPairId:
+      Description: Key Pair ID of the generated EC2 SSH key
+      Value: !Ref BackendKeyPair

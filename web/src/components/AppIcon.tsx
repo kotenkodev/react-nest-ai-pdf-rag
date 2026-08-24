@@ -20,7 +20,7 @@ export default function AppIcon({
   const [isSelected, setIsSelected] = useState(false);
   const iconRef = useRef<HTMLDivElement>(null);
 
-  useDraggable(iconRef, {
+  useDraggable(iconRef as unknown as React.RefObject<HTMLElement>, {
     bounds: "parent",
     onDragStart: () => {
       setIsSelected(true);

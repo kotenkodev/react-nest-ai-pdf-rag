@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
 
@@ -28,7 +28,7 @@ jobs:
       - name: Generate vercel.json with EC2 proxy
         working-directory: web
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST_IP }}
+          EC2_HOST: ${{ vars.EC2_HOST_IP }}
         run: |
           cat <<EOF > vercel.json
           {
@@ -48,10 +48,10 @@ jobs:
           }
           EOF
 
-      - uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: web
-          vercel-args: --prod
+      - name: Deploy to Vercel
+        working-directory: web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: npx vercel deploy --prod --token=$VERCEL_TOKEN --build-env VITE_API_URL=/api --yes
