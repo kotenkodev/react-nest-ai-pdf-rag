@@ -1,0 +1,64 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths: [api/**, .github/workflows/deploy-api.yml]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - run: npm ci
+        working-directory: api
+
+      - run: npm run build
+        working-directory: api
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-dist
+          path: api/dist
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: api-dist
+          path: api/dist
+
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            cd /var/www/pdf-assistant/api
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            npm ci --omit=dev
+            npm run build
+
+            pm2 reload pdf-api || pm2 start dist/main.js --name pdf-api
+            pm2 save

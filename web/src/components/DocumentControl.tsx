@@ -181,9 +181,12 @@ export default function DocumentControl({
                     </span>
                   </p>
                   {document.errorMessage && (
-                    <p className="text-red-600 text-[11px] mt-1 break-words">
+                    <div
+                      title={document.errorMessage}
+                      className="text-red-600 text-[11px] mt-1.5 pt-1.5 border-t border-red-300 max-h-20 overflow-y-auto break-words leading-tight pr-1"
+                    >
                       {document.errorMessage}
-                    </p>
+                    </div>
                   )}
                 </div>
               ) : (
