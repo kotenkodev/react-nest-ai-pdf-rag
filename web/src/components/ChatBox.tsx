@@ -77,6 +77,7 @@ export default function ChatBox({
                 id={message.id}
                 text={message.text}
                 isUser={message.isUser}
+                isError={message.isError}
                 createdAt={message.createdAt}
               />
             ))}

@@ -36,6 +36,7 @@ function chatReducer(state: ChatMessage[], action: ChatAction): ChatMessage[] {
           id: crypto.randomUUID(),
           text: action.text,
           isUser: false,
+          isError: true,
           createdAt: new Date(),
         },
       ];
