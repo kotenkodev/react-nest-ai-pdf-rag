@@ -1,3 +1,56 @@
+export const formatUserFriendlyDocumentError = (
+  rawMessage?: string | null,
+): string => {
+  if (!rawMessage) {
+    return "Processing failed. Please try uploading your document again.";
+  }
+
+  const msg = rawMessage.toLowerCase();
+
+  if (
+    msg.includes("quota") ||
+    msg.includes("resource_exhausted") ||
+    msg.includes("429")
+  ) {
+    return "The AI service rate limit was exceeded. Please wait a moment and try uploading again.";
+  }
+  if (msg.includes("timeout") || msg.includes("timed out")) {
+    return "Document processing timed out. Please try uploading a smaller PDF.";
+  }
+  if (
+    msg.includes("empty") ||
+    msg.includes("no readable text") ||
+    msg.includes("image-only")
+  ) {
+    return "No readable text found in PDF. Please upload a PDF containing selectable text (scanned image PDFs without OCR are not supported).";
+  }
+  if (
+    msg.includes("embedding") ||
+    msg.includes("jina") ||
+    msg.includes("vector") ||
+    msg.includes("pinecone")
+  ) {
+    return "Failed to index document content for AI search. Please try re-uploading.";
+  }
+  if (
+    msg.includes("s3") ||
+    msg.includes("download") ||
+    msg.includes("bucket")
+  ) {
+    return "Storage access error occurred during processing. Please try re-uploading.";
+  }
+
+  if (
+    !rawMessage.includes("{") &&
+    !rawMessage.includes("at ") &&
+    rawMessage.length < 120
+  ) {
+    return rawMessage;
+  }
+
+  return "An unexpected error occurred while processing your PDF. Please try re-uploading.";
+};
+
 export const formatErrorMessage = (
   err: any,
   fallbackMessage: string,
@@ -27,7 +80,7 @@ export const formatErrorMessage = (
     err.code === "ERR_NETWORK" ||
     err.message?.toLowerCase().includes("network error")
   ) {
-    return "Unable to connect to the server. Please check your connection.";
+    return "Unable to connect to the server. Please check your internet connection.";
   }
   if (
     err.code === "ECONNABORTED" ||

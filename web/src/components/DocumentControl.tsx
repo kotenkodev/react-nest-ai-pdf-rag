@@ -4,6 +4,7 @@ import { Drvspace7, FolderFile, User4, Warning } from "@react95/icons";
 import type { DocumentItem, DocumentStatus } from "../types/document.type";
 import { useRef, useState } from "react";
 import { downloadDocumentFile } from "../services/documentService";
+import { formatUserFriendlyDocumentError } from "../utils/formatErrorMessage";
 
 interface DocumentControlProps {
   document: DocumentItem | null | undefined;
@@ -183,9 +184,9 @@ export default function DocumentControl({
                   {document.errorMessage && (
                     <div
                       title={document.errorMessage}
-                      className="text-red-600 text-[11px] mt-1.5 pt-1.5 border-t border-red-300 max-h-20 overflow-y-auto break-words leading-tight pr-1"
+                      className="text-red-600 text-[11px] mt-1.5 pt-1.5 border-t border-red-300 max-h-20 overflow-y-auto break-words leading-tight pr-1 font-medium"
                     >
-                      {document.errorMessage}
+                      {formatUserFriendlyDocumentError(document.errorMessage)}
                     </div>
                   )}
                 </div>
