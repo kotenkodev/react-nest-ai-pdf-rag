@@ -20,7 +20,7 @@ NestJS REST API server for managing PDF document metadata, generating AWS S3 pre
 
 | Method | Endpoint | Description | Guard |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/chat` | Takes user question, embeds question via Gemini, searches Pinecone namespace, constructs prompt context, and returns Gemini AI answer | `EmailGuard` |
+| `POST` | `/chat` | Takes user question, embeds query via Jina AI (`jina-embeddings-v3`), searches Pinecone namespace, constructs prompt context, and returns Gemini AI answer | `EmailGuard` |
 
 ---
 
@@ -63,4 +63,5 @@ TABLE_NAME=UserDocuments
 GEMINI_API_KEY=your_gemini_api_key
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_INDEX=pdf-documents
+JINA_API_KEY=your_jina_api_key
 ```

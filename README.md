@@ -1,6 +1,6 @@
-# Full-Stack PDF RAG Assistant (Next/React + NestJS + AWS Step Functions + Pinecone + Gemini)
+# Full-Stack PDF RAG Assistant (Next/React + NestJS + AWS Step Functions + Pinecone + Jina AI + Gemini)
 
-A production-grade Retrieval-Augmented Generation (RAG) system built with a retro Windows 95 UI, NestJS backend API, AWS Step Functions processing pipeline, Pinecone vector database, and Google Gemini AI.
+A production-grade Retrieval-Augmented Generation (RAG) system built with a retro Windows 95 UI, NestJS backend API, AWS Step Functions processing pipeline, Pinecone vector database, Jina AI embeddings, and Google Gemini AI.
 
 ---
 
@@ -36,6 +36,7 @@ flowchart TD
 
     subgraph External ["Vector DB & AI Services"]
         Pinecone[(Pinecone Vector DB)]
+        JinaAI[Jina AI Embeddings API]
         Gemini[Google Gemini API]
     end
 
@@ -53,7 +54,7 @@ flowchart TD
     StateMach --> Lambda1
     Lambda1 -->|Download & Extract PDF Text| Lambda2
     Lambda2 -->|Split Text Chunks| Lambda3
-    Lambda3 -->|Embed Chunks via Gemini| Gemini
+    Lambda3 -->|Embed Chunks via Jina AI| JinaAI
     Lambda3 -->|Upsert Vectors + Metadata| Pinecone
     Lambda3 --> Lambda4
     Lambda4 -->|Update Status: SUCCESS / ERROR| DynamoTable
@@ -62,7 +63,7 @@ flowchart TD
     UI -->|9. Poll Status every 2s| API
     API -->|10. Read Status| DynamoTable
     UI -->|11. Send Question| API
-    API -->|12. Generate Embeddings| GenAISvc
+    API -->|12. Generate Query Embedding| JinaAI
     API -->|13. Similarity Search| PineconeSvc
     PineconeSvc -->|Return Matches| API
     API -->|14. Contextual Prompting| GenAISvc
@@ -78,7 +79,7 @@ flowchart TD
 | **Frontend (`/web`)** | React 19, Vite, `@react95/core`, `@react95/icons`, `@react95/clippy`, TanStack Query v5, Zustand, TailwindCSS |
 | **Backend (`/api`)** | NestJS 11, Express, `@aws-sdk/client-dynamodb`, `@aws-sdk/client-s3`, `@pinecone-database/pinecone`, `@google/genai`, Class Validator |
 | **Cloud Infrastructure (`/aws`)** | Serverless Framework v3, AWS Lambda (Node.js 22), AWS Step Functions, AWS S3, AWS EventBridge, AWS DynamoDB |
-| **AI & Vector Engine** | Google Gemini AI (`text-embedding-004`, `gemini-2.5-flash`), Pinecone Vector Database |
+| **AI & Vector Engine** | Jina AI (`jina-embeddings-v3`), Google Gemini AI (`gemini-3.6-flash`), Pinecone Vector Database |
 
 ---
 
@@ -89,7 +90,8 @@ flowchart TD
 - **NPM**: `v10+`
 - **AWS Credentials**: AWS Access Key ID and Secret Access Key configured
 - **Pinecone Account**: API Key and Index name
-- **Google Gemini API Key**: Active Gemini API key
+- **Jina AI API Key**: Active API key for vector embeddings (`jina-embeddings-v3`)
+- **Google Gemini API Key**: Active Gemini API key for chat completion
 
 ---
 
@@ -125,6 +127,7 @@ TABLE_NAME=UserDocuments
 GEMINI_API_KEY=your_gemini_api_key
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_INDEX=pdf-documents
+JINA_API_KEY=your_jina_api_key
 ```
 
 ##### `aws/.env`
@@ -133,6 +136,7 @@ TABLE_NAME=UserDocuments
 GEMINI_API_KEY=your_gemini_api_key
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_INDEX=pdf-documents
+JINA_API_KEY=your_jina_api_key
 ```
 
 ##### `web/.env`

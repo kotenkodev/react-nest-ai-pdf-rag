@@ -28,7 +28,7 @@ Serverless Framework service deploying AWS Step Functions, Lambda functions, S3 
    - Splits extracted text into semantic chunks (~500 characters).
 
 3. **`processAndIndexChunks`**:
-   - Generates text embeddings using Google Gemini `text-embedding-004`.
+   - Generates text embeddings using Jina AI `jina-embeddings-v3` (`task: retrieval.passage`, 1024 dimensions).
    - Upserts vector embeddings and metadata (`fileKey`, `userEmail`, `chunkIndex`, `text`) to Pinecone namespace.
 
 4. **`updateStatus`**:
@@ -57,4 +57,5 @@ TABLE_NAME=UserDocuments
 GEMINI_API_KEY=your_gemini_api_key
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_INDEX=pdf-documents
+JINA_API_KEY=your_jina_api_key
 ```
