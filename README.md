@@ -173,13 +173,17 @@ npm run deploy
 
 ---
 
-## 📁 Repository Structure
+## 📁 Repository Structure & Subsystem Documentation
+
+- 🔌 **[Backend API README](api/README.md)** — NestJS API, Endpoints, Guards & Database Integrations
+- ⚡ **[AWS Infrastructure README](aws/README.md)** — Serverless Framework, Step Functions & Lambda Handlers
+- 💻 **[Web Application README](web/README.md)** — React 19 + Vite Retro Win95 Desktop Interface
 
 ```
 .
-├── api/          # NestJS backend API server & DynamoDB/S3/Pinecone/Gemini integrations
-├── aws/          # Serverless Framework configuration & AWS Step Functions Lambda handlers
-├── web/          # React + Vite frontend application with Win95 desktop interface
+├── api/          # NestJS backend API server & DynamoDB/S3/Pinecone/Gemini integrations (see api/README.md)
+├── aws/          # Serverless Framework configuration & AWS Step Functions Lambda handlers (see aws/README.md)
+├── web/          # React + Vite frontend application with Win95 desktop interface (see web/README.md)
 └── README.md     # Project overview and system architecture
 ```
 

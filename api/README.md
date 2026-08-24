@@ -4,6 +4,14 @@ NestJS REST API server for managing PDF document metadata, generating AWS S3 pre
 
 ---
 
+## 🗺️ Navigation
+
+- 🏠 **[Root Overview](../README.md)** — Full-stack Architecture, Tech Stack & Setup
+- ⚡ **[AWS Infrastructure README](../aws/README.md)** — Serverless Step Functions Pipeline & Lambda Handlers
+- 💻 **[Web Application README](../web/README.md)** — React + Vite Retro Win95 Desktop Interface
+
+---
+
 ## 🏛 Architecture & API Endpoints
 
 ### 1. Document Management (`/documents`)

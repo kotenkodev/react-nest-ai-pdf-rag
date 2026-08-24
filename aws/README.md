@@ -4,6 +4,14 @@ Serverless Framework service deploying AWS Step Functions, Lambda functions, S3 
 
 ---
 
+## 🗺️ Navigation
+
+- 🏠 **[Root Overview](../README.md)** — Full-stack Architecture, Tech Stack & Setup
+- 🔌 **[Backend API README](../api/README.md)** — NestJS API, Endpoints, Guards & Database Integrations
+- 💻 **[Web Application README](../web/README.md)** — React + Vite Retro Win95 Desktop Interface
+
+---
+
 ## ⚡ Step Functions Pipeline Workflow
 
 ```

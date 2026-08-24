@@ -4,6 +4,14 @@ A React + Vite single-page application built with `@react95/core`, `@react95/ico
 
 ---
 
+## 🗺️ Navigation
+
+- 🏠 **[Root Overview](../README.md)** — Full-stack Architecture, Tech Stack & Setup
+- 🔌 **[Backend API README](../api/README.md)** — NestJS API, Endpoints, Guards & Database Integrations
+- ⚡ **[AWS Infrastructure README](../aws/README.md)** — Serverless Step Functions Pipeline & Lambda Handlers
+
+---
+
 ## 🎨 Features & UX Design
 
 - **Retro Win95 Desktop**: Draggable desktop icons, TaskBar, Start menu, Clippy companion, and Win95 window modals.
