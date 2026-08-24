@@ -18,8 +18,8 @@ export const appConfigSchema: Joi.ObjectSchema = Joi.object({
 
   AWS_BUCKET_NAME: Joi.string().required(),
   AWS_REGION: Joi.string().required(),
-  AWS_ACCESS_KEY_ID: Joi.string().required(),
-  AWS_SECRET_ACCESS_KEY: Joi.string().required(),
+  AWS_ACCESS_KEY_ID: Joi.string().optional().allow(''),
+  AWS_SECRET_ACCESS_KEY: Joi.string().optional().allow(''),
 
   TABLE_NAME: Joi.string().required(),
 
@@ -27,4 +27,5 @@ export const appConfigSchema: Joi.ObjectSchema = Joi.object({
   PINECONE_INDEX: Joi.string().required(),
 
   GEMINI_API_KEY: Joi.string().required(),
+  JINA_API_KEY: Joi.string().required(),
 });

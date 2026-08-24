@@ -43,11 +43,13 @@ export class S3Service {
   async getPresignedUploadUrl(
     key: string,
     contentType: string,
+    contentLength?: number,
   ): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
       ContentType: contentType,
+      ...(contentLength ? { ContentLength: contentLength } : {}),
     });
 
     return getSignedUrl(this.client, command, {

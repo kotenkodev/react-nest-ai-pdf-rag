@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "deploy": "serverless deploy"
+    "deploy": "serverless deploy",
+    "format": "prettier --write \"src/**/*.ts\""
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.162",
@@ -16,6 +17,7 @@
     "@google/genai": "^2.18.0",
     "@pinecone-database/pinecone": "^8.2.0",
     "pdf-parse": "^1.1.1",
+    "prettier": "^3.9.6",
     "zod": "^4.4.3"
   }
 }

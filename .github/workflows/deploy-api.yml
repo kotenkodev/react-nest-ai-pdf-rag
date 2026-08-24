@@ -55,6 +55,7 @@ jobs:
             EOF
 
             npm ci
+            npm test
             npm run build
             pm2 reload pdf-api || pm2 start dist/main.js --name pdf-api
             pm2 save

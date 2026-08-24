@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { PineconeService } from 'src/infrastructure/pinecone/pinecone.service';
 import { DocumentRepository } from './documents.repository';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { DocumentEntity, DocumentStatus } from './entities/document.entity';
-import { SetDocumentStatusDto } from './dto/set-document-status.dto';
 
 @Injectable()
 export class DocumentsService {
@@ -40,7 +44,9 @@ export class DocumentsService {
     const existingDocument = await this.repository.getByEmail(email);
 
     if (existingDocument) {
-      await this.deleteDocument(email);
+      throw new BadRequestException(
+        'Document already exists. Please delete existing document first.',
+      );
     }
 
     const objectKey = `documents/${email}/document.pdf`;
@@ -48,6 +54,7 @@ export class DocumentsService {
     const presignedPostUrl = await this.s3Service.getPresignedUploadUrl(
       objectKey,
       data.mimeType,
+      data.size,
     );
 
     const document = await this.repository.create({
@@ -83,7 +90,9 @@ export class DocumentsService {
     } catch (error) {
       console.error('Failed to delete document', error);
 
-      return false;
+      throw new InternalServerErrorException(
+        `Failed to delete document: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }

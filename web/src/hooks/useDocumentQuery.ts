@@ -25,8 +25,10 @@ export const useGetDocument = () => {
       }
     },
     enabled: isAuthenticated,
-    refetchInterval: isAuthenticated ? 2000 : false,
-    refetchIntervalInBackground: true,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.status === "pending" ? 2000 : false;
+    },
   });
 };
 

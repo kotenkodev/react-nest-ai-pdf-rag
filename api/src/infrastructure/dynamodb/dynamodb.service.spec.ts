@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { DynamodbService } from './dynamodb.service';
 
 describe('DynamodbService', () => {
@@ -6,7 +7,17 @@ describe('DynamodbService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [DynamodbService],
+      providers: [
+        DynamodbService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(
+              (key: string, defaultValue?: any) => defaultValue ?? 'test-val',
+            ),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<DynamodbService>(DynamodbService);

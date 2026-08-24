@@ -3,7 +3,6 @@ import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { EmailGuard } from 'src/shared/guards/email.guard';
 import { CurrentUserEmail } from 'src/shared/decorators/current-user-email.decorator';
-import { SetDocumentStatusDto } from './dto/set-document-status.dto';
 
 @Controller('documents')
 export class DocumentsController {

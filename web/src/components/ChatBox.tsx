@@ -84,7 +84,10 @@ export default function ChatBox({
             {isAsking && (
               <Frame className="p-3 text-xs border shadow-sm max-w-[85%] bg-[#d8d8d8] border-[#999999] self-start mr-auto animate-pulse">
                 <div className="flex items-center gap-2 font-bold text-[#000080]">
-                  <Qfecheck111 variant="32x32_4" className="-mr-0.5 flex-shrink-0 animate-spin" />
+                  <Qfecheck111
+                    variant="32x32_4"
+                    className="-mr-0.5 flex-shrink-0 animate-spin"
+                  />
                   <span className="flex items-center gap-1">
                     AI Assistant is thinking
                     <span className="inline-flex">...</span>

@@ -35,7 +35,11 @@ export default function Message({
       <div className="flex justify-between items-center mb-1.5 gap-4">
         <h4
           className={`font-bold text-xs flex items-center gap-0.5 ${
-            isUser ? "text-[#1b4d1b]" : isError ? "text-[#8b0000]" : "text-[#000080]"
+            isUser
+              ? "text-[#1b4d1b]"
+              : isError
+                ? "text-[#8b0000]"
+                : "text-[#000080]"
           }`}
         >
           {icon ? (
@@ -47,7 +51,9 @@ export default function Message({
           ) : (
             <Qfecheck111 variant="32x32_4" className="-mr-0.5" />
           )}
-          <span>{isUser ? "YOU (User)" : isError ? "ERROR" : "AI ASSISTANT"}</span>
+          <span>
+            {isUser ? "YOU (User)" : isError ? "ERROR" : "AI ASSISTANT"}
+          </span>
         </h4>
         <span className="text-[11px] text-gray-600">
           {dateFormat(createdAt, "h:MM TT")}

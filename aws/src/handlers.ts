@@ -159,7 +159,9 @@ export const extractText = async (
       );
     }
 
-    const key = decodeURIComponent(rawKey.replace(/\+/g, " "));
+    const key = eventDetail?.object?.key
+      ? rawKey
+      : decodeURIComponent(rawKey.replace(/\+/g, " "));
 
     if (key.startsWith("temp_extracted/") || key.startsWith("temp_chunks/")) {
       console.warn(`Skipping text extraction for temporary key: ${key}`);
@@ -172,7 +174,15 @@ export const extractText = async (
 
     const keyParts = key.split("/");
     const userEmail =
-      event.userEmail || (keyParts.length > 2 ? keyParts[1] : keyParts[0]);
+      event.userEmail ||
+      (key.startsWith("documents/")
+        ? keyParts[1]
+        : key.startsWith("temp_extracted/documents/") ||
+            key.startsWith("temp_chunks/documents/")
+          ? keyParts[2]
+          : keyParts.length > 2
+            ? keyParts[1]
+            : keyParts[0]);
 
     const object = await s3.send(
       new GetObjectCommand({
@@ -367,12 +377,19 @@ export const updateStatus = async (
     eventDetail?.object?.key || data.Records?.[0]?.s3?.object?.key;
 
   const s3Key = rawS3Key
-    ? decodeURIComponent(rawS3Key.replace(/\+/g, " "))
+    ? eventDetail?.object?.key
+      ? rawS3Key
+      : decodeURIComponent(rawS3Key.replace(/\+/g, " "))
     : undefined;
   const s3Email = s3Key
-    ? s3Key.split("/").length > 2
+    ? s3Key.startsWith("documents/")
       ? s3Key.split("/")[1]
-      : s3Key.split("/")[0]
+      : s3Key.startsWith("temp_extracted/documents/") ||
+          s3Key.startsWith("temp_chunks/documents/")
+        ? s3Key.split("/")[2]
+        : s3Key.split("/").length > 2
+          ? s3Key.split("/")[1]
+          : s3Key.split("/")[0]
     : undefined;
 
   const userEmail = event.userEmail || data.userEmail || s3Email;
