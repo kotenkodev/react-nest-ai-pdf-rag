@@ -57,9 +57,24 @@ export class PineconeService {
       await this.index.namespace(userEmail).deleteAll();
       this.logger.log(`Deleted all vectors for user ${userEmail}`);
     } catch (error: any) {
-      this.logger.warn(
-        `Could not delete vectors for user ${userEmail} (namespace may not exist yet): ${error?.message || error}`,
-      );
+      const msg = error?.message || String(error);
+      const isNotFound =
+        error?.status === 404 ||
+        msg.includes('404') ||
+        msg.toLowerCase().includes('not found') ||
+        msg.toLowerCase().includes('namespace');
+
+      if (isNotFound) {
+        this.logger.warn(
+          `Could not delete vectors for user ${userEmail} (namespace may not exist yet): ${msg}`,
+        );
+      } else {
+        this.logger.error(
+          `Failed to delete vectors for user ${userEmail}:`,
+          error,
+        );
+        throw error;
+      }
     }
   }
 }

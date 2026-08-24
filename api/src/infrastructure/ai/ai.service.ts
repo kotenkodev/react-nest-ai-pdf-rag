@@ -41,7 +41,12 @@ export class AiService {
       data: Array<{ embedding: number[] }>;
     };
 
-    return data?.data?.[0]?.embedding ?? [];
+    const embedding = data?.data?.[0]?.embedding;
+    if (!embedding || embedding.length === 0) {
+      throw new Error('Jina AI returned an empty or invalid embedding vector');
+    }
+
+    return embedding;
   }
 
   async generateResponse(query: string, context: string[]) {

@@ -75,9 +75,9 @@ export class DocumentsService {
     const document = await this.getDocumentByEmail(email);
 
     try {
-      await this.repository.delete(email);
-      await this.s3Service.deleteObject(document.fileStorageKey);
       await this.pineconeService.deleteByUserEmail(email);
+      await this.s3Service.deleteObject(document.fileStorageKey);
+      await this.repository.delete(email);
 
       return true;
     } catch (error) {

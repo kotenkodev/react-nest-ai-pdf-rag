@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { S3EventRecord } from "aws-lambda";
 import pdfParse from "pdf-parse";
-import { DocumentStatus } from "./constants.js";
+import { DocumentStatus, MAX_FILE_SIZE } from "./constants.js";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { Pinecone } from "@pinecone-database/pinecone";
@@ -90,7 +90,9 @@ async function generateEmbeddings(
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Jina AI embedding API failed (${res.status}): ${errText}`);
+      throw new Error(
+        `Jina AI embedding API failed (${res.status}): ${errText}`,
+      );
     }
 
     const data = (await res.json()) as {
@@ -159,6 +161,15 @@ export const extractText = async (
 
     const key = decodeURIComponent(rawKey.replace(/\+/g, " "));
 
+    if (key.startsWith("temp_extracted/") || key.startsWith("temp_chunks/")) {
+      console.warn(`Skipping text extraction for temporary key: ${key}`);
+      return {
+        userEmail: event.userEmail || "",
+        fileKey: key,
+        bucket,
+      };
+    }
+
     const keyParts = key.split("/");
     const userEmail =
       event.userEmail || (keyParts.length > 2 ? keyParts[1] : keyParts[0]);
@@ -172,6 +183,11 @@ export const extractText = async (
 
     if (!object.Body) {
       throw new Error("Failed to download PDF object from S3");
+    }
+
+    const maxSizeBytes = MAX_FILE_SIZE;
+    if (object.ContentLength && object.ContentLength > maxSizeBytes) {
+      throw new Error("File size exceeds 10MB limit");
     }
 
     const pdfBuffer = Buffer.from(await object.Body.transformToByteArray());
@@ -372,20 +388,40 @@ export const updateStatus = async (
 
   const userErrorMessage = extractErrorMessage(rawError);
 
-  await docClient.send(
-    new UpdateCommand({
-      TableName: tableName,
-      Key: { userEmail },
-      UpdateExpression: userErrorMessage
-        ? "SET #status = :status, errorMessage = :errorMessage"
-        : "SET #status = :status",
-      ExpressionAttributeNames: { "#status": "status" },
-      ExpressionAttributeValues: {
-        ":status": status,
-        ...(userErrorMessage ? { ":errorMessage": userErrorMessage } : {}),
-      },
-    }),
-  );
+  try {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: { userEmail },
+        UpdateExpression: userErrorMessage
+          ? "SET #status = :status, errorMessage = :errorMessage"
+          : "SET #status = :status",
+        ConditionExpression: "attribute_exists(userEmail)",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":status": status,
+          ...(userErrorMessage ? { ":errorMessage": userErrorMessage } : {}),
+        },
+      }),
+    );
+  } catch (err: any) {
+    if (
+      err.name === "ConditionalCheckFailedException" ||
+      err.code === "ConditionalCheckFailedException"
+    ) {
+      console.warn(
+        `Skipped updateStatus for user ${userEmail}: Document record was deleted before processing completed.`,
+      );
+      return {
+        ...event,
+        userEmail,
+        fileKey,
+        status: DocumentStatus.ERROR,
+        error: "Document record was deleted prior to pipeline completion",
+      };
+    }
+    throw err;
+  }
 
   return {
     ...event,

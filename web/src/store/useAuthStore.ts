@@ -17,7 +17,8 @@ export const useAuthStore = create<AuthState>()(
       userEmail: null,
       isAuthenticated: false,
       isWindowOpen: false,
-      setUserEmail: (email) => set({ userEmail: email, isAuthenticated: true }),
+      setUserEmail: (email) =>
+        set({ userEmail: email.trim().toLowerCase(), isAuthenticated: true }),
       clearUserEmail: () => set({ userEmail: null, isAuthenticated: false }),
       openWindow: () => set({ isWindowOpen: true }),
       closeWindow: () => set({ isWindowOpen: false }),

@@ -17,7 +17,7 @@ export class EmailGuard implements CanActivate {
       throw new UnauthorizedException('x-user-email header is required');
     }
 
-    request.email = emailHeader;
+    request.email = emailHeader.trim().toLowerCase();
 
     return true;
   }

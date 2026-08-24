@@ -72,6 +72,9 @@ stepFunctions:
                 bucket:
                   name:
                     - ${self:service}-${sls:stage}-pdf-uploads
+                object:
+                  key:
+                    - prefix: documents/
       definition:
         Comment: "PDF Processing Workflow"
         StartAt: ExtractTextStep
