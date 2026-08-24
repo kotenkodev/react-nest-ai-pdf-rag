@@ -6,22 +6,42 @@ import { ConfigService } from '@nestjs/config';
 export class AiService {
   private readonly genAI: GoogleGenAI;
 
-  constructor(configService: ConfigService) {
+  private readonly jinaApiKey: string;
+
+  constructor(private readonly configService: ConfigService) {
     this.genAI = new GoogleGenAI({
       apiKey: configService.get<string>('GEMINI_API_KEY'),
     });
+    this.jinaApiKey = configService.get<string>('JINA_API_KEY', '');
   }
 
   async generateEmbeddings(chunks: string[]) {
-    const response = await this.genAI.models.embedContent({
-      model: 'gemini-embedding-001',
-      contents: chunks,
-      config: {
-        outputDimensionality: 1024,
+    const res = await fetch('https://api.jina.ai/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.jinaApiKey}`,
       },
+      body: JSON.stringify({
+        model: 'jina-embeddings-v3',
+        task: 'retrieval.query',
+        dimensions: 1024,
+        input: chunks,
+      }),
     });
 
-    return response.embeddings?.[0]?.values ?? [];
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(
+        `Jina AI embeddings request failed (${res.status}): ${errText}`,
+      );
+    }
+
+    const data = (await res.json()) as {
+      data: Array<{ embedding: number[] }>;
+    };
+
+    return data?.data?.[0]?.embedding ?? [];
   }
 
   async generateResponse(query: string, context: string[]) {

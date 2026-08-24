@@ -23,6 +23,7 @@ provider:
     GEMINI_API_KEY: ${env:GEMINI_API_KEY, ''}
     PINECONE_API_KEY: ${env:PINECONE_API_KEY, ''}
     PINECONE_INDEX: ${env:PINECONE_INDEX, 'pdf-documents'}
+    JINA_API_KEY: ${env:JINA_API_KEY, ''}
   iam:
     role:
       statements:
@@ -45,12 +46,16 @@ provider:
 functions:
   extractText:
     handler: src/handlers.extractText
+    timeout: 60
   chunkText:
     handler: src/handlers.chunkText
+    timeout: 30
   processAndIndexChunks:
     handler: src/handlers.processAndIndexChunks
+    timeout: 120
   updateStatus:
     handler: src/handlers.updateStatus
+    timeout: 30
 
 stepFunctions:
   stateMachines:

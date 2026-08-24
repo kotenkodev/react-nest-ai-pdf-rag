@@ -59,26 +59,65 @@ async function generateEmbeddings(
   fileKey: string,
   userEmail: string,
 ) {
-  const response = await ai.models.embedContent({
-    model: "gemini-embedding-001",
-    contents: chunks,
-    config: {
-      outputDimensionality: 1024,
-    },
-  });
+  const apiKey = env.JINA_API_KEY;
+  if (!apiKey) {
+    throw new Error("JINA_API_KEY is missing from environment variables");
+  }
 
-  return (
-    response?.embeddings?.map((emb, index) => ({
-      id: `${fileKey}_chunk_${index}`,
-      values: emb.values || [],
-      metadata: {
-        userEmail,
-        fileKey,
-        chunkIndex: index,
-        text: chunks[index],
+  const batchSize = 100;
+  const records: Array<{
+    id: string;
+    values: number[];
+    metadata: Record<string, any>;
+  }> = [];
+
+  for (let i = 0; i < chunks.length; i += batchSize) {
+    const chunkBatch = chunks.slice(i, i + batchSize);
+
+    const res = await fetch("https://api.jina.ai/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
       },
-    })) || []
-  );
+      body: JSON.stringify({
+        model: "jina-embeddings-v3",
+        task: "retrieval.passage",
+        dimensions: 1024,
+        input: chunkBatch,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Jina AI embedding API failed (${res.status}): ${errText}`);
+    }
+
+    const data = (await res.json()) as {
+      data: Array<{ index: number; embedding: number[] }>;
+    };
+
+    if (data?.data) {
+      for (const item of data.data) {
+        const globalIndex = i + item.index;
+        if (item.embedding && item.embedding.length > 0) {
+          const safeKey = fileKey.replace(/[^a-zA-Z0-9_.-]/g, "_");
+          records.push({
+            id: `${safeKey}_chunk_${globalIndex}`,
+            values: item.embedding,
+            metadata: {
+              userEmail,
+              fileKey,
+              chunkIndex: globalIndex,
+              text: chunks[globalIndex],
+            },
+          });
+        }
+      }
+    }
+  }
+
+  return records;
 }
 
 async function upsertToPinecone(
@@ -202,7 +241,7 @@ export const chunkText = async (
       throw new Error("No readable text found to chunk");
     }
 
-    const chunks = text.match(/[\s\S]{1,500}(?!\w)/g) || [];
+    const chunks = text.match(/[\s\S]{1,1000}(?!\w)/g) || [];
     if (chunks.length === 0) {
       throw new Error("Document content could not be split into valid chunks");
     }
@@ -291,7 +330,9 @@ export const processAndIndexChunks = async (
     };
   } catch (err: any) {
     console.error("processAndIndexChunks step failed:", err);
-    throw new Error("Failed to generate AI embeddings or index vector records");
+    throw new Error(
+      `Failed to generate AI embeddings or index vector records: ${err.message || err}`,
+    );
   }
 };
 
